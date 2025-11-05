@@ -8,6 +8,18 @@ cd "$(dirname "$0")"
 echo "=== SimpleTodo Update ==="
 echo "Directory: $(pwd)"
 
+# Optional: force remote state if conflicts occur
+FORCE_REMOTE=0
+if [[ "${1:-}" == "--force" ]] || [[ "${FORCE_REMOTE:-0}" == "1" ]]; then
+  FORCE_REMOTE=1
+fi
+
+# Avoid interactive prompts from git
+export GIT_TERMINAL_PROMPT=0
+
+# Silence whitespace warnings during patch application
+git config apply.whitespace nowarn || true
+
 # 1) Git steps (only if in a git repository)
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   # Stash local changes if any (including untracked)
@@ -20,7 +32,23 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 
   # Pull latest changes
   echo "Pulling latest changes..."
-  git pull --rebase
+  if ! git pull --rebase; then
+    echo "git pull --rebase failed. Checking for merge conflicts..."
+    if git ls-files -u | grep -q ""; then
+      echo "Unmerged files detected."
+      if [[ "$FORCE_REMOTE" == "1" ]]; then
+        echo "FORCE mode: resetting hard to origin/main"
+        git fetch origin || true
+        git reset --hard origin/main
+      else
+        echo "Aborting update due to conflicts. Re-run with --force to overwrite local changes."
+        exit 2
+      fi
+    else
+      echo "No unmerged files, but pull failed. Aborting."
+      exit 2
+    fi
+  fi
 else
   echo "Not a git repository. Initializing..."
   git init
@@ -51,17 +79,39 @@ else
     echo "Setting local main to track origin/main..."
     git branch --set-upstream-to=origin/main main || true
     echo "Rebasing local commits onto origin/main..."
-    git pull --rebase origin main || true
+    if ! git pull --rebase origin main; then
+      echo "Rebase failed while aligning with origin/main."
+      if [[ "$FORCE_REMOTE" == "1" ]]; then
+        echo "FORCE mode: resetting hard to origin/main"
+        git reset --hard origin/main
+      else
+        echo "Aborting update due to conflicts. Re-run with --force to overwrite local changes."
+        exit 2
+      fi
+    fi
   else
     echo "Remote 'origin' has no 'main' branch yet. Staying on local main."
   fi
   # Pull latest if tracking is set
-  git pull --rebase origin main || true
+  if ! git pull --rebase origin main; then
+    echo "Final pull failed."
+    if [[ "$FORCE_REMOTE" == "1" ]]; then
+      echo "FORCE mode: resetting hard to origin/main"
+      git reset --hard origin/main
+    else
+      echo "Aborting update due to conflicts. Re-run with --force to overwrite local changes."
+      exit 2
+    fi
+  fi
 fi
 
 # 3) Run database migrations (non-interactive)
 echo "Running database migrations..."
-php artisan migrate --force
+if command -v php >/dev/null 2>&1; then
+  php artisan migrate --force
+else
+  echo "php command not found. Skipping migrations."
+fi
 
 echo "✅ Update completed successfully."
 
