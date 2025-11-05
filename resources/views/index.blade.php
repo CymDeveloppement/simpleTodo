@@ -344,6 +344,10 @@
                 </div>
                 <div class="modal-body">
                     <p class="mb-2">Exécute le script d'update côté serveur et affiche le résultat ici.</p>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="updateForce">
+                        <label class="form-check-label" for="updateForce">Forcer (écraser les modifications locales en cas de conflit)</label>
+                    </div>
                     <div id="updateStatus" class="mb-2 text-muted" style="display:none"></div>
                     <pre id="updateOutput" class="bg-dark text-white p-3 rounded" style="max-height: 300px; overflow: auto;">Prêt.</pre>
                 </div>

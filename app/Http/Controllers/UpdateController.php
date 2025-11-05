@@ -51,7 +51,11 @@ class UpdateController extends Controller
             2 => ['pipe', 'w'], // stderr
         ];
 
-        $process = proc_open('bash update.sh', $descriptorSpec, $pipes, $projectRoot);
+        $cmd = 'bash update.sh';
+        if ($request->boolean('force')) {
+            $cmd .= ' --force';
+        }
+        $process = proc_open($cmd, $descriptorSpec, $pipes, $projectRoot);
 
         if (!\is_resource($process)) {
             return response()->json([

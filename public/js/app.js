@@ -500,6 +500,7 @@ async function runServerUpdate() {
     if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = ''; }
 
     try {
+        const force = !!(document.getElementById('updateForce') && document.getElementById('updateForce').checked);
         const response = await fetch(`${API_BASE_URL}/api/update`, {
             method: 'POST',
             headers: {
@@ -507,7 +508,7 @@ async function runServerUpdate() {
                 'X-CSRF-Token': window.csrfToken,
                 'X-User-Email': (window.userEmail || getStoredEmail() || '')
             },
-            body: JSON.stringify({ email: (window.userEmail || getStoredEmail() || '') })
+            body: JSON.stringify({ email: (window.userEmail || getStoredEmail() || ''), force: force })
         });
         const data = await response.json();
         const lines = [];
