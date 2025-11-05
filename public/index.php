@@ -19,13 +19,20 @@ if (preg_match('/\.(?:js|css)$/', $uri)) {
     }
 }
 
-// Sinon, passer à l'API Lumen
-require __DIR__.'/../vendor/autoload.php';
+// Sinon, passer à Laravel
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Http\Request;
 
-(new Laravel\Lumen\Bootstrap\LoadEnvironmentVariables(
-    dirname(__DIR__)
-))->bootstrap();
+define('LARAVEL_START', microtime(true));
+
+require __DIR__.'/../vendor/autoload.php';
 
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
-$app->run();
+$kernel = $app->make(Kernel::class);
+
+$response = $kernel->handle(
+    $request = Request::capture()
+)->send();
+
+$kernel->terminate($request, $response);

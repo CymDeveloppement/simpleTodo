@@ -99,7 +99,7 @@ class ListController extends Controller
                     'email' => $creatorEmail,
                     'pseudo' => 'Créateur',
                     'token' => $token,
-                    'confirmed' => 1
+                    'email_verified' => 1
                 ]);
             }
         }
