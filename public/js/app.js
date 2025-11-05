@@ -479,6 +479,18 @@ document.addEventListener('DOMContentLoaded', function() {
     loadCategories();
     loadTodos();
     loadSubscribers();
+
+    // Si authentifié, clic sur le pseudo → retour à l'accueil
+    const pseudoInput = document.getElementById('pseudo');
+    if (pseudoInput) {
+        pseudoInput.style.cursor = 'pointer';
+        pseudoInput.addEventListener('click', function() {
+            const email = (window.userEmail || getStoredEmail() || '').trim();
+            if (email) {
+                window.location.href = '/';
+            }
+        });
+    }
     
     // Traiter la file d'emails de manière transparente toutes les 5 secondes
     setInterval(processEmailQueue, 5000);
