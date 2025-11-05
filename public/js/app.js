@@ -481,10 +481,10 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSubscribers();
 
     // Si authentifié, clic sur le pseudo → retour à l'accueil
-    const pseudoInput = document.getElementById('pseudo');
-    if (pseudoInput) {
-        pseudoInput.style.cursor = 'pointer';
-        pseudoInput.addEventListener('click', function() {
+    const currentPseudoEl = document.getElementById('currentPseudo');
+    if (currentPseudoEl) {
+        currentPseudoEl.style.cursor = 'pointer';
+        currentPseudoEl.addEventListener('click', function() {
             const email = (window.userEmail || getStoredEmail() || '').trim();
             if (email) {
                 window.location.href = '/';

@@ -9,6 +9,9 @@ class ListController extends Controller
 {
     public function show(Request $request, $listId)
     {
+        // Vérifier et ajouter la colonne auto_assign_to_creator si elle n'existe pas
+        $this->ensureAutoAssignColumnExists();
+        
         $list = TodoList::find($listId);
         
         if (!$list) {
@@ -112,6 +115,9 @@ class ListController extends Controller
             'auto_assign_to_creator' => 'nullable|boolean',
         ]);
 
+        // Vérifier et ajouter la colonne auto_assign_to_creator si elle n'existe pas
+        $this->ensureAutoAssignColumnExists();
+
         $list = TodoList::findOrFail($listId);
         
         // Démarrer la session si elle n'est pas démarrée
@@ -196,5 +202,33 @@ class ListController extends Controller
         $list->delete();
         
         return response()->json(['message' => 'Liste supprimée avec succès'], 200);
+    }
+
+    /**
+     * Vérifier et ajouter la colonne auto_assign_to_creator si elle n'existe pas
+     */
+    private function ensureAutoAssignColumnExists()
+    {
+        try {
+            $db = \DB::connection()->getPdo();
+            
+            // Vérifier si la colonne existe déjà
+            $stmt = $db->query("PRAGMA table_info(lists)");
+            $columns = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $columnExists = false;
+            
+            foreach ($columns as $column) {
+                if ($column['name'] === 'auto_assign_to_creator') {
+                    $columnExists = true;
+                    break;
+                }
+            }
+            
+            if (!$columnExists) {
+                $db->exec("ALTER TABLE lists ADD COLUMN auto_assign_to_creator INTEGER DEFAULT 0");
+            }
+        } catch (\Exception $e) {
+            // Ignorer les erreurs silencieusement
+        }
     }
 }
