@@ -269,6 +269,17 @@
                         </select>
                     </div>
 
+                    <!-- Option d'assignation automatique (créateur uniquement) -->
+                    <div class="border-top border-white mt-3 pt-3 creator-only">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="autoAssignToCreator" onchange="saveAutoAssignOption()">
+                            <label class="form-check-label text-white" for="autoAssignToCreator">
+                                <small>📋 Assigner automatiquement les nouvelles tâches au créateur</small>
+                            </label>
+                        </div>
+                        <small class="text-white d-block mt-1">Les nouvelles tâches seront automatiquement assignées au créateur</small>
+                    </div>
+
                     <!-- Supprimer les tâches terminées (créateur uniquement) -->
                     <div class="border-top border-white mt-3 pt-3 creator-only">
                         <small class="text-white d-block mb-2">🗑️ Nettoyage</small>
@@ -312,6 +323,33 @@
                     <button class="btn btn-outline-primary" onclick="shareListUrl()">
                         <i class="bi bi-share"></i> Partager cette liste
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4 text-center">
+        <small class="text-muted">
+            <a href="#" class="creator-only" data-bs-toggle="modal" data-bs-target="#updateModal">Mettre à jour l'application</a>
+        </small>
+    </div>
+
+    <!-- Modal de mise à jour (propriétaire uniquement) -->
+    <div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-arrow-repeat"></i> Mise à jour de l'application</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">Exécute le script d'update côté serveur et affiche le résultat ici.</p>
+                    <div id="updateStatus" class="mb-2 text-muted" style="display:none"></div>
+                    <pre id="updateOutput" class="bg-dark text-white p-3 rounded" style="max-height: 300px; overflow: auto;">Prêt.</pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary" onclick="runServerUpdate()"><i class="bi bi-play-circle"></i> Lancer la mise à jour</button>
                 </div>
             </div>
         </div>

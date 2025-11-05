@@ -46,6 +46,9 @@ $router->delete('/api/categories/{listId}/{id}', 'App\Http\Controllers\CategoryC
 $router->post('/api/email-queue/process', 'App\Http\Controllers\EmailQueueController@process');
 $router->get('/api/email-queue/status', 'App\Http\Controllers\EmailQueueController@getQueueStatus');
 
+// Maintenance / Update
+$router->post('/api/update', 'App\Http\Controllers\UpdateController@run');
+
 
 // Home route - afficher la page d'accueil (routes spécifiques en premier)
 $router->get('/', 'App\Http\Controllers\HomeController@index');

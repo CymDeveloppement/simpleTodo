@@ -16,5 +16,6 @@ class TodoList extends Model
         'title',
         'header_gradient',
         'creator_email',
+        'auto_assign_to_creator',
     ];
 }

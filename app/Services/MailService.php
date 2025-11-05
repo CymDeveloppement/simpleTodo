@@ -11,6 +11,7 @@ class MailService
      */
     public function sendNewTodoNotification($subscribers, $todo, $listTitle)
     {
+        $serviceName = env('TODO_SERVICE_NAME', 'SimpleTodo');
         foreach ($subscribers as $subscriber) {
             try {
                 $listUrl = $this->getListUrl($todo->list_id, $subscriber->token);
@@ -22,9 +23,9 @@ class MailService
                     "Date : " . date('d/m/Y H:i') . "\n\n" .
                     "Vous pouvez consulter la liste à l'adresse suivante :\n" .
                     $listUrl,
-                    function ($message) use ($subscriber, $listTitle) {
+                    function ($message) use ($subscriber, $listTitle, $serviceName) {
                         $message->to($subscriber->email)
-                            ->subject("Nouvelle tâche - {$listTitle}");
+                            ->subject("[{$serviceName}] Nouvelle tâche - {$listTitle}");
                     }
                 );
             } catch (\Exception $e) {
@@ -38,6 +39,7 @@ class MailService
      */
     public function sendCompletedTodoNotification($subscribers, $todo, $listTitle)
     {
+        $serviceName = env('TODO_SERVICE_NAME', 'SimpleTodo');
         foreach ($subscribers as $subscriber) {
             try {
                 $listUrl = $this->getListUrl($todo->list_id, $subscriber->token);
@@ -50,9 +52,9 @@ class MailService
                     "Date de complétion : " . date('d/m/Y H:i') . "\n\n" .
                     "Vous pouvez consulter la liste à l'adresse suivante :\n" .
                     $listUrl,
-                    function ($message) use ($subscriber, $listTitle) {
+                    function ($message) use ($subscriber, $listTitle, $serviceName) {
                         $message->to($subscriber->email)
-                            ->subject("Tâche terminée - {$listTitle}");
+                            ->subject("[{$serviceName}] Tâche terminée - {$listTitle}");
                     }
                 );
             } catch (\Exception $e) {
@@ -67,6 +69,7 @@ class MailService
     public function sendWelcomeEmail($subscriber, $listTitle, $listUrl)
     {
         try {
+            $serviceName = env('TODO_SERVICE_NAME', 'SimpleTodo');
             Mail::raw(
                 "Bienvenue dans la liste '{$listTitle}' !\n\n" .
                 "Vous êtes maintenant inscrit pour recevoir des notifications par email.\n\n" .
@@ -77,9 +80,9 @@ class MailService
                 $listUrl . "\n\n" .
                 "Pour vous désinscrire, utilisez le bouton dans les paramètres de la liste.\n\n" .
                 "Bon travail !",
-                function ($message) use ($subscriber, $listTitle) {
+                function ($message) use ($subscriber, $listTitle, $serviceName) {
                     $message->to($subscriber->email)
-                        ->subject("Bienvenue dans {$listTitle} - SimpleTodo");
+                        ->subject("[{$serviceName}] Bienvenue dans {$listTitle}");
                 }
             );
         } catch (\Exception $e) {
@@ -93,6 +96,7 @@ class MailService
     public function sendInvitation($email, $invitedBy, $listTitle, $listUrl)
     {
         try {
+            $serviceName = env('TODO_SERVICE_NAME', 'SimpleTodo');
             Mail::raw(
                 "Invitation à collaborer sur une liste de tâches\n\n" .
                 "{$invitedBy} vous invite à collaborer sur la liste '{$listTitle}' !\n\n" .
@@ -104,10 +108,10 @@ class MailService
                 "Cliquez sur le lien ci-dessous pour accéder à la liste :\n\n" .
                 $listUrl . "\n\n" .
                 "Vous pouvez commencer à travailler immédiatement !\n\n" .
-                "À bientôt sur SimpleTodo !",
-                function ($message) use ($email, $listTitle, $invitedBy) {
+                "À bientôt sur {$serviceName} !",
+                function ($message) use ($email, $listTitle, $invitedBy, $serviceName) {
                     $message->to($email)
-                        ->subject("Invitation à collaborer sur {$listTitle} - SimpleTodo");
+                        ->subject("[{$serviceName}] Invitation à collaborer sur {$listTitle}");
                 }
             );
         } catch (\Exception $e) {
@@ -134,9 +138,9 @@ class MailService
 
     private function getListUrl($listId, $token = null)
     {
-        $url = request()->getSchemeAndHttpHost() . '/?list=' . $listId;
+        $url = request()->getSchemeAndHttpHost() . '/' . $listId;
         if ($token) {
-            $url .= '&token=' . $token;
+            $url .= '/' . $token;
         }
         return $url;
     }

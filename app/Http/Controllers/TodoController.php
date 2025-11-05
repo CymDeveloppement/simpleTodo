@@ -32,6 +32,21 @@ class TodoController extends Controller
             'pseudo' => 'required|string|max:50',
         ]);
 
+        // Vérifier si l'option auto_assign_to_creator est activée
+        $list = \App\Models\TodoList::find($listId);
+        $assignedTo = null;
+        
+        if ($list && $list->auto_assign_to_creator && $list->creator_email) {
+            // Récupérer le pseudo du créateur depuis les abonnés
+            $creatorSubscriber = \App\Models\Subscriber::where('list_id', $listId)
+                ->where('email', $list->creator_email)
+                ->first();
+            
+            if ($creatorSubscriber) {
+                $assignedTo = $creatorSubscriber->pseudo ?: 'Créateur';
+            }
+        }
+
         $todo = Todo::create([
             'list_id' => $listId,
             'category_id' => $request->input('category_id'),
@@ -39,6 +54,7 @@ class TodoController extends Controller
             'pseudo' => $request->input('pseudo'),
             'completed' => false,
             'due_date' => $request->input('due_date'),
+            'assigned_to' => $assignedTo,
         ]);
 
         // Envoyer des notifications aux abonnés

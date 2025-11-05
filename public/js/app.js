@@ -377,6 +377,38 @@ async function changeHeaderGradient() {
     }
 }
 
+// Sauvegarder l'option d'assignation automatique
+async function saveAutoAssignOption() {
+    const checkbox = document.getElementById('autoAssignToCreator');
+    if (!checkbox) return;
+    
+    const enabled = checkbox.checked;
+    window.autoAssignToCreator = enabled;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/lists/${listId}`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken
+            },
+            body: JSON.stringify({ auto_assign_to_creator: enabled })
+        });
+        
+        if (!response.ok) {
+            console.error('Erreur sauvegarde option assignation:', response.statusText);
+            // Restaurer l'état précédent en cas d'erreur
+            checkbox.checked = !enabled;
+            window.autoAssignToCreator = !enabled;
+        }
+    } catch (error) {
+        console.error('Erreur sauvegarde option assignation:', error);
+        // Restaurer l'état précédent en cas d'erreur
+        checkbox.checked = !enabled;
+        window.autoAssignToCreator = !enabled;
+    }
+}
+
 // Charger le pseudo et le titre au démarrage
 document.addEventListener('DOMContentLoaded', function() {
     const storedPseudo = localStorage.getItem('simpleTodo_pseudo');
@@ -459,6 +491,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Lancer la mise à jour serveur (créateur/admin uniquement)
+async function runServerUpdate() {
+    const outputEl = document.getElementById('updateOutput');
+    const statusEl = document.getElementById('updateStatus');
+    if (outputEl) outputEl.textContent = 'Exécution en cours...';
+    if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = ''; }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/update`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken,
+                'X-User-Email': (window.userEmail || getStoredEmail() || '')
+            },
+            body: JSON.stringify({ email: (window.userEmail || getStoredEmail() || '') })
+        });
+        const data = await response.json();
+        const lines = [];
+        lines.push(`Success: ${!!data.success}`);
+        if (typeof data.code !== 'undefined') lines.push(`Exit code: ${data.code}`);
+        if (data.stdout) {
+            lines.push('\n--- stdout ---');
+            lines.push(data.stdout);
+        }
+        if (data.stderr) {
+            lines.push('\n--- stderr ---');
+            lines.push(data.stderr);
+        }
+        if (outputEl) outputEl.textContent = lines.join('\n');
+        if (statusEl) statusEl.textContent = response.ok ? 'Mise à jour terminée.' : 'Erreur lors de la mise à jour.';
+    } catch (e) {
+        if (outputEl) outputEl.textContent = `Erreur: ${e}`;
+        if (statusEl) statusEl.textContent = 'Erreur lors de la mise à jour.';
+    }
+}
 
 // Fonction pour sauvegarder le pseudo depuis la modal
 function savePseudoFromModal() {
@@ -1247,14 +1316,22 @@ async function loadListTitle() {
         // Enregistrer si on est le créateur et abonné
         window.isListCreator = data.is_creator;
         window.isSubscriber = data.is_subscriber || false;
+        window.autoAssignToCreator = data.auto_assign_to_creator || false;
         console.log('isListCreator from API:', window.isListCreator);
         console.log('isSubscriber from API:', window.isSubscriber);
+        console.log('autoAssignToCreator from API:', window.autoAssignToCreator);
         console.log('Creator email from API:', data.creator_email);
         
         // Si on est le créateur mais pas d'email stocké, récupérer l'email du créateur
         if (window.isListCreator && !getStoredEmail() && data.creator_email) {
             setStoredEmail(data.creator_email);
             console.log('Creator email set from API:', data.creator_email);
+        }
+        
+        // Mettre à jour la checkbox d'assignation automatique
+        const autoAssignCheckbox = document.getElementById('autoAssignToCreator');
+        if (autoAssignCheckbox) {
+            autoAssignCheckbox.checked = window.autoAssignToCreator;
         }
         
         // Afficher ou cacher le bouton de suppression

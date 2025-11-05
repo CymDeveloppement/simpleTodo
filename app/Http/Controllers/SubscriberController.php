@@ -208,6 +208,7 @@ class SubscriberController extends Controller
         
         // Envoyer l'email avec les liens
         try {
+            $serviceName = env('TODO_SERVICE_NAME', 'SimpleTodo');
             $emailBody = "Bonjour,\n\n";
             $emailBody .= "Voici vos liens d'authentification pour accéder à vos listes de tâches :\n\n";
             
@@ -217,11 +218,11 @@ class SubscriberController extends Controller
             }
             
             $emailBody .= "Cliquez sur ces liens pour accéder directement à vos listes.\n\n";
-            $emailBody .= "À bientôt sur SimpleTodo !";
+            $emailBody .= "À bientôt sur {$serviceName} !";
             
-            Mail::raw($emailBody, function ($message) use ($email) {
+            Mail::raw($emailBody, function ($message) use ($email, $serviceName) {
                 $message->to($email)
-                    ->subject('Vos liens d\'authentification SimpleTodo');
+                    ->subject("[{$serviceName}] Vos liens d'authentification");
             });
         } catch (\Exception $e) {
             \Log::error('Erreur envoi email authentification : ' . $e->getMessage());

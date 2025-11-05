@@ -35,6 +35,8 @@ class ListController extends Controller
         }
         
         // Vérifier si l'utilisateur est le créateur
+        $adminEmail = env('ADMIN_EMAIL');
+        $isAdmin = $userEmail && $adminEmail && $userEmail === $adminEmail;
         $isCreator = $userEmail && $userEmail === $list->creator_email;
         
         // Vérifier si l'utilisateur est abonné
@@ -49,8 +51,9 @@ class ListController extends Controller
             'title' => $list->title,
             'header_gradient' => $list->header_gradient,
             'creator_email' => $list->creator_email,
-            'is_creator' => $isCreator,
-            'is_subscriber' => $isSubscriber
+            'is_creator' => $isCreator || $isAdmin,
+            'is_subscriber' => $isSubscriber,
+            'auto_assign_to_creator' => (bool) $list->auto_assign_to_creator
         ]);
     }
 
@@ -106,6 +109,7 @@ class ListController extends Controller
         $this->validate($request, [
             'title' => 'nullable|string|max:100',
             'header_gradient' => 'nullable|string|max:20',
+            'auto_assign_to_creator' => 'nullable|boolean',
         ]);
 
         $list = TodoList::findOrFail($listId);
@@ -126,9 +130,11 @@ class ListController extends Controller
             $userEmail = $request->query('email');
         }
         
+        $adminEmail = env('ADMIN_EMAIL');
+        $isAdmin = $userEmail && $adminEmail && $userEmail === $adminEmail;
         $isCreator = $userEmail && $userEmail === $list->creator_email;
         
-        if (!$isCreator) {
+        if (!($isCreator || $isAdmin)) {
             return response()->json(['error' => 'Seul le créateur peut modifier la liste'], 403);
         }
         
@@ -138,6 +144,10 @@ class ListController extends Controller
         
         if ($request->has('header_gradient')) {
             $list->header_gradient = $request->input('header_gradient');
+        }
+        
+        if ($request->has('auto_assign_to_creator')) {
+            $list->auto_assign_to_creator = $request->input('auto_assign_to_creator') ? 1 : 0;
         }
         
         $list->save();
@@ -165,9 +175,11 @@ class ListController extends Controller
             $userEmail = $request->query('email');
         }
         
+        $adminEmail = env('ADMIN_EMAIL');
+        $isAdmin = $userEmail && $adminEmail && $userEmail === $adminEmail;
         $isCreator = $userEmail && $userEmail === $list->creator_email;
         
-        if (!$isCreator) {
+        if (!($isCreator || $isAdmin)) {
             return response()->json(['error' => 'Seul le créateur peut supprimer la liste'], 403);
         }
         
