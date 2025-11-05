@@ -1,0 +1,23 @@
+{
+    "name": "simpletodo/app",
+    "description": "Application SimpleTodo - Todolist collaborative avec Lumen et Bootstrap 5",
+    "type": "project",
+    "require": {
+        "php": "^8.0",
+        "laravel/lumen-framework": "^10.0",
+        "illuminate/mail": "^10.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "league/flysystem": "^3.0",
+        "symfony/mailgun-mailer": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "scripts": {
+        "serve": "php -S localhost:8000 -t public"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

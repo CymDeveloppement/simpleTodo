@@ -1,0 +1,39 @@
+#!/usr/bin/env php
+<?php
+
+require_once __DIR__.'/vendor/autoload.php';
+
+(new Laravel\Lumen\Bootstrap\LoadEnvironmentVariables(
+    dirname(__FILE__)
+))->bootstrap();
+
+$app = require_once __DIR__.'/bootstrap/app.php';
+
+// Récupérer les arguments de la ligne de commande
+$args = array_slice($argv, 1);
+
+if (empty($args) || $args[0] === 'help') {
+    echo "SimpleTodo - Commandes disponibles :\n\n";
+    echo "  migrate           Créer/mettre à jour les tables de la base de données\n";
+    echo "  mail:test EMAIL   Envoyer un email de test\n";
+    echo "\n";
+    exit(0);
+}
+
+// Router vers la commande appropriée
+switch ($args[0]) {
+    case 'migrate':
+        $command = new App\Console\Commands\MigrateCommand();
+        $command->handle();
+        break;
+        
+    case 'mail:test':
+        $mailService = $app->make(App\Services\MailService::class);
+        $command = new App\Console\Commands\TestMailCommand($mailService);
+        exit($command->handle(array_slice($args, 1)));
+        
+    default:
+        echo "❌ Commande inconnue : {$args[0]}\n";
+        echo "Tapez 'php artisan help' pour voir les commandes disponibles.\n";
+        exit(1);
+}

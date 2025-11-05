@@ -1,0 +1,20 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class TodoList extends Model
+{
+    protected $table = 'lists';
+    public $timestamps = true;
+    public $incrementing = false;
+    protected $keyType = 'string';
+    
+    protected $fillable = [
+        'id',
+        'title',
+        'header_gradient',
+        'creator_email',
+    ];
+}
