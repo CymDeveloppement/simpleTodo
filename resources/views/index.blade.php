@@ -191,7 +191,7 @@
                     </div>
                     
                     <div>
-                        <small class="text-white d-block mb-2">📧 Recevoir les notifications</small>
+                        <small class="text-white d-block mb-2"><i class="bi bi-envelope"></i> Recevoir les notifications</small>
                         <div id="emailSubscription">
                             <div class="input-group input-group-sm mb-2">
                                 <input type="email" id="email" class="form-control" placeholder="votre@email.com" maxlength="255">
@@ -213,7 +213,7 @@
 
                     <!-- Liste des abonnés -->
                     <div class="border-top border-white mt-3 pt-3">
-                        <small class="text-white d-block mb-2">👥 Abonnés à cette liste</small>
+                        <small class="text-white d-block mb-2"><i class="bi bi-people"></i> Abonnés à cette liste</small>
                         <div id="subscribersList" class="border-top border-white pt-2">
                             <div class="text-white small text-center py-2">
                                 <i class="bi bi-hourglass-split"></i> Chargement...
@@ -223,7 +223,7 @@
 
                     <!-- Inviter quelqu'un -->
                     <div class="border-top border-white mt-3 pt-3">
-                        <small class="text-white d-block mb-2">✉️ Inviter quelqu'un</small>
+                        <small class="text-white d-block mb-2"><i class="bi bi-envelope-paper"></i> Inviter quelqu'un</small>
                         <div class="input-group input-group-sm mb-2">
                             <input type="email" id="inviteEmail" class="form-control" placeholder="email@example.com" maxlength="255">
                             <button class="btn btn-light btn-sm" onclick="inviteCollaborator()">
@@ -235,7 +235,7 @@
 
                     <!-- Gestion des catégories (créateur uniquement) -->
                     <div class="border-top border-white mt-3 pt-3 creator-only">
-                        <small class="text-white d-block mb-2">🏷️ Gestion des catégories</small>
+                        <small class="text-white d-block mb-2"><i class="bi bi-tag"></i> Gestion des catégories</small>
                         
                         <div class="mb-3">
                             <label class="text-white small d-block mb-1">Nouvelle catégorie</label>
@@ -256,7 +256,7 @@
 
                     <!-- Personnalisation du thème (créateur uniquement) -->
                     <div class="border-top border-white mt-3 pt-3 creator-only">
-                        <small class="text-white d-block mb-2">🎨 Thème du header</small>
+                        <small class="text-white d-block mb-2"><i class="bi bi-palette"></i> Thème du header</small>
                         <select id="headerGradient" class="form-select form-select-sm mb-2" onchange="changeHeaderGradient()">
                             <option value="gradient1">Bleu/Violet clair</option>
                             <option value="gradient2">Rouge/Orange</option>
@@ -274,7 +274,7 @@
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="autoAssignToCreator" onchange="saveAutoAssignOption()">
                             <label class="form-check-label text-white" for="autoAssignToCreator">
-                                <small>📋 Assigner automatiquement les nouvelles tâches au créateur</small>
+                                <small><i class="bi bi-clipboard-check"></i> Assigner automatiquement les nouvelles tâches au créateur</small>
                             </label>
                         </div>
                         <small class="text-white d-block mt-1">Les nouvelles tâches seront automatiquement assignées au créateur</small>
@@ -282,7 +282,7 @@
 
                     <!-- Supprimer les tâches terminées (créateur uniquement) -->
                     <div class="border-top border-white mt-3 pt-3 creator-only">
-                        <small class="text-white d-block mb-2">🗑️ Nettoyage</small>
+                        <small class="text-white d-block mb-2"><i class="bi bi-trash"></i> Nettoyage</small>
                         <button class="btn btn-sm btn-light w-100 mb-2" onclick="clearCompleted()" id="clearBtn" style="display: none;">
                             <i class="bi bi-trash"></i> Supprimer les tâches terminées
                         </button>
@@ -292,7 +292,7 @@
                         <button class="btn btn-sm btn-danger w-100 d-none" id="deleteListBtnSettings" onclick="confirmDeleteList()">
                             <i class="bi bi-trash3"></i> Supprimer la liste
                         </button>
-                        <small class="text-white d-block mt-2">⚠️ Action irréversible - La liste et toutes ses données seront supprimées</small>
+                        <small class="text-white d-block mt-2"><i class="bi bi-exclamation-triangle"></i> Action irréversible - La liste et toutes ses données seront supprimées</small>
                     </div>
                 </div>
             </div>

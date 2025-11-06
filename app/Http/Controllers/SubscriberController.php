@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Subscriber;
+use App\Models\User;
 use App\Services\MailService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 
 class SubscriberController extends Controller
@@ -34,6 +36,18 @@ class SubscriberController extends Controller
 
         // Générer un token unique
         $token = bin2hex(random_bytes(32));
+
+        // Créer ou récupérer l'utilisateur
+        $user = User::firstOrCreate(
+            ['email' => $request->input('email')],
+            [
+                'name' => $request->input('pseudo') ?: explode('@', $request->input('email'))[0],
+                'email_verified_at' => null,
+            ]
+        );
+
+        // Connecter l'utilisateur
+        Auth::login($user);
 
         $subscriber = Subscriber::create([
             'list_id' => $listId,
@@ -127,19 +141,15 @@ class SubscriberController extends Controller
 
     public function getMyLists(Request $request)
     {
-        // Récupérer l'email depuis la session
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        // Récupérer l'utilisateur connecté via Auth
+        $user = Auth::user();
         
-        $email = $_SESSION['simpleTodo_email'] ?? null;
-        
-        if (!$email) {
+        if (!$user) {
             return response()->json(['message' => 'Utilisateur non authentifié'], 401);
         }
         
         // Récupérer toutes les listes où l'utilisateur est abonné
-        $subscribers = Subscriber::where('email', $email)->get();
+        $subscribers = Subscriber::where('email', $user->email)->get();
         
         $lists = [];
         foreach ($subscribers as $subscriber) {
@@ -157,23 +167,21 @@ class SubscriberController extends Controller
 
     public function authenticateWithToken($token)
     {
-        // Récupérer le subscriber via le token
-        $subscriber = Subscriber::where('token', $token)->first();
+        // Utiliser la méthode statique du modèle User
+        $user = User::connectWithToken($token);
         
-        if (!$subscriber) {
+        if (!$user) {
             return response()->json(['message' => 'Token invalide'], 404);
         }
         
-        // Démarrer la session et stocker l'email
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        $_SESSION['simpleTodo_email'] = $subscriber->email;
-        
         return response()->json([
             'message' => 'Authentification réussie',
-            'email' => $subscriber->email
+            'email' => $user->email,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ]
         ]);
     }
 

@@ -1401,7 +1401,7 @@ function updateDeleteButton() {
 
 // Confirmer la suppression de la liste
 function confirmDeleteList() {
-    if (!confirm('⚠️ Attention : Cette action est irréversible !\n\nVoulez-vous vraiment supprimer cette liste et toutes ses tâches ?')) {
+    if (!confirm('Attention : Cette action est irréversible !\n\nVoulez-vous vraiment supprimer cette liste et toutes ses tâches ?')) {
         return;
     }
     
