@@ -19,7 +19,9 @@ class ListController extends Controller
                 'title' => 'SimpleTodo',
                 'creator_email' => null,
                 'is_creator' => false,
-                'is_subscriber' => false
+                'is_subscriber' => false,
+                'auto_assign_to_creator' => false,
+                'admin_email' => env('ADMIN_EMAIL'),
             ]);
         }
         
@@ -56,7 +58,8 @@ class ListController extends Controller
             'creator_email' => $list->creator_email,
             'is_creator' => $isCreator || $isAdmin,
             'is_subscriber' => $isSubscriber,
-            'auto_assign_to_creator' => (bool) $list->auto_assign_to_creator
+            'auto_assign_to_creator' => (bool) $list->auto_assign_to_creator,
+            'admin_email' => $adminEmail,
         ]);
     }
 

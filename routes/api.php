@@ -41,6 +41,9 @@ Route::post('/auth/request-email', [App\Http\Controllers\SubscriberController::c
 // Invitation routes
 Route::post('/invitations/{listId}', [App\Http\Controllers\InvitationController::class, 'send']);
 
+// Update route
+Route::get('/update/check', [App\Http\Controllers\UpdateController::class, 'check']);
+
 // Category routes
 Route::get('/categories/{listId}', [App\Http\Controllers\CategoryController::class, 'index']);
 Route::post('/categories/{listId}', [App\Http\Controllers\CategoryController::class, 'store']);

@@ -50,6 +50,33 @@ class UpdateChecker
         return $decoded['tag_name'] ?? null;
     }
 
+    public function getRemoteRelease(?string $repo = null): ?array
+    {
+        if (!is_executable($this->getUpdateScript)) {
+            return null;
+        }
+
+        $command = escapeshellcmd($this->getUpdateScript);
+        if ($repo) {
+            $command .= ' ' . escapeshellarg($repo);
+        }
+
+        $raw = shell_exec($command);
+        if ($raw === null) {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded) || isset($decoded['message'])) {
+            return null;
+        }
+
+        return [
+            'tag_name' => $decoded['tag_name'] ?? null,
+            'name' => $decoded['name'] ?? null,
+        ];
+    }
+
     public function getLocalVersion(): ?string
     {
         if (!is_executable($this->getCurrentScript)) {

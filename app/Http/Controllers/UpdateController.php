@@ -78,6 +78,31 @@ class UpdateController extends Controller
             'stderr' => $stderr,
         ], $exitCode === 0 ? 200 : 500);
     }
+
+    public function check(Request $request)
+    {
+        $repo = $request->query('repo');
+        /** @var \App\Services\UpdateChecker $checker */
+        $checker = app(\App\Services\UpdateChecker::class);
+
+        $local = $checker->getLocalVersion();
+        $remoteRelease = $checker->getRemoteRelease($repo);
+
+        if (!$remoteRelease || empty($remoteRelease['tag_name'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossible de récupérer la release distante',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'local_version' => $local,
+            'remote_tag' => $remoteRelease['tag_name'],
+            'remote_name' => $remoteRelease['name'],
+            'has_update' => $local ? $local !== $remoteRelease['tag_name'] : true,
+        ]);
+    }
 }
 
 

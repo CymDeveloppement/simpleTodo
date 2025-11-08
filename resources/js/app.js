@@ -73,6 +73,9 @@ setupAuthenticatedFetch();
 let listId = getListId();
 setTodosListId(listId);
 
+let updateBannerCheckDone = false;
+let updateBannerCheckInProgress = false;
+
 // Si pas de listId dans query string, essayer depuis le chemin
 if (!listId) {
     const path = window.location.pathname;
@@ -804,6 +807,60 @@ function setupCommentInput(todoId) {
     input.dataset.enterHandler = 'true';
 }
 
+async function maybeShowUpdateBanner() {
+    const adminEmail = (window.adminEmail || '').toLowerCase();
+    const currentEmail = (window.userEmail || getStoredEmail() || '').trim().toLowerCase();
+
+    if (!adminEmail || !currentEmail || adminEmail !== currentEmail) {
+        return;
+    }
+
+    if (updateBannerCheckDone || updateBannerCheckInProgress) {
+        return;
+    }
+
+    updateBannerCheckInProgress = true;
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/update/check`);
+        if (!response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+            return;
+        }
+
+        updateBannerCheckDone = true;
+
+        if (!data.has_update) {
+            return;
+        }
+
+        const updateContainer = document.getElementById('updateLinkContainer');
+        const updateLink = document.getElementById('updateLink');
+        if (!updateContainer || !updateLink) {
+            return;
+        }
+
+        const parts = [];
+        if (data.remote_tag) {
+            parts.push(data.remote_tag);
+        }
+        if (data.remote_name) {
+            parts.push(data.remote_name);
+        }
+        const suffix = parts.join(' - ');
+        updateLink.textContent = suffix ? `Mettre à jour l'application (${suffix})` : `Mettre à jour l'application`;
+        updateLink.classList.remove('d-none');
+        updateContainer.classList.remove('d-none');
+    } catch (error) {
+        console.error('Erreur lors de la vérification de mise à jour:', error);
+    } finally {
+        updateBannerCheckInProgress = false;
+    }
+}
+
 function setCommentButtonState(todoId, commentCount) {
     const button = document.getElementById(`comment-button-${todoId}`);
     if (!button) {
@@ -939,6 +996,7 @@ async function loadListTitle() {
         
         // Afficher ou cacher le bouton de suppression
         updateDeleteButton();
+        maybeShowUpdateBanner();
         
         return title;
     }
@@ -955,6 +1013,7 @@ async function loadListTitle() {
         window.isListCreator = data.is_creator;
         window.isSubscriber = data.is_subscriber || false;
         window.autoAssignToCreator = data.auto_assign_to_creator || false;
+        window.adminEmail = (data.admin_email || '').toLowerCase();
         console.log('isListCreator from API:', window.isListCreator);
         console.log('isSubscriber from API:', window.isSubscriber);
         console.log('autoAssignToCreator from API:', window.autoAssignToCreator);
@@ -1022,6 +1081,19 @@ function updateDeleteButton() {
             section.classList.add('d-none');
         }
     });
+
+    const updateContainer = document.getElementById('updateLinkContainer');
+    const updateLink = document.getElementById('updateLink');
+
+    if (window.isListCreator) {
+        if (updateContainer) updateContainer.classList.add('d-none');
+        if (updateLink) updateLink.classList.add('d-none');
+        maybeShowUpdateBanner();
+    } else {
+        if (updateContainer) updateContainer.classList.add('d-none');
+        if (updateLink) updateLink.classList.add('d-none');
+        updateBannerCheckDone = false;
+    }
 }
 
 // Confirmer la suppression de la liste

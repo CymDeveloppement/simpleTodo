@@ -203,9 +203,9 @@
         </div>
     </div>
 
-    <div class="container mt-4 text-center">
+    <div class="container mt-4 text-center d-none" id="updateLinkContainer">
         <small class="text-muted">
-            <a href="#" class="creator-only" data-bs-toggle="modal" data-bs-target="#updateModal">Mettre à jour l'application</a>
+            <a href="#" id="updateLink" class="d-none text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateModal">Mettre à jour l'application</a>
         </small>
     </div>
 
