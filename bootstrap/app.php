@@ -13,21 +13,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Middleware global pour les routes web
+        // Dans Laravel 12, les middlewares web sont déjà inclus par défaut
+        // On ajoute seulement nos middlewares personnalisés
         $middleware->web(append: [
-            \App\Http\Middleware\EncryptCookies::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
         ]);
         
-        // Middleware pour les routes API
+        // Middleware pour les routes API (ajout de session pour partager l'auth)
         $middleware->api(prepend: [
             \App\Http\Middleware\CorsMiddleware::class,
+            \Illuminate\Session\Middleware\StartSession::class,
         ]);
         
-        // Alias middleware (optionnel)
+        // Alias middleware
         $middleware->alias([
             'auth' => \App\Http\Middleware\Authenticate::class,
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,

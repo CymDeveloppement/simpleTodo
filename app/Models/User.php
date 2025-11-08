@@ -54,8 +54,9 @@ class User extends Authenticatable
             ]
         );
         
-        // Connecter l'utilisateur
-        Auth::login($user);
+        // Connecter l'utilisateur avec le garde web explicitement
+        // Utiliser guard('web') pour s'assurer que c'est le bon garde
+        Auth::guard('web')->login($user, true); // true = se souvenir de l'utilisateur
         
         return $user;
     }

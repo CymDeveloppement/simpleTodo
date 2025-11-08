@@ -7,7 +7,8 @@
         "laravel/framework": "^12.0",
         "guzzlehttp/guzzle": "^7.9",
         "league/flysystem": "^3.28",
-        "symfony/mailgun-mailer": "^6.4"
+        "symfony/mailgun-mailer": "^6.4",
+        "symfony/http-client": "^7.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

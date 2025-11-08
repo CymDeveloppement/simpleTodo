@@ -151,7 +151,12 @@
             <div class="card-header">
                 <div class="d-flex align-items-center mb-3">
                     <h4 class="mb-0"><i class="bi bi-check2-square"></i> <span id="listTitle">SimpleTodo</span></h4>
-                    <div class="d-flex gap-2 ms-auto">
+                    <div class="d-flex align-items-center gap-2 ms-auto">
+                        @if(isset($user) && $user)
+                            <span class="text-white me-2">
+                                <i class="bi bi-person-circle"></i> {{ $user->email }}
+                            </span>
+                        @endif
                         <button class="btn btn-sm btn-light creator-only" onclick="editTitle()">
                             <i class="bi bi-pencil"></i> Modifier
                         </button>
@@ -486,7 +491,7 @@
     <script>
         // Injecter les données PHP dans le JavaScript
         window.userEmail = @json($email);
-        window.csrfToken = '<?php echo isset($_SESSION['csrf_token']) ? $_SESSION['csrf_token'] : ''; ?>';
+        window.csrfToken = '{{ csrf_token() }}';
     </script>
     
     <script src="/js/app.js"></script>

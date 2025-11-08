@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class MailService
 {
@@ -15,21 +16,28 @@ class MailService
         foreach ($subscribers as $subscriber) {
             try {
                 $listUrl = $this->getListUrl($todo->list_id, $subscriber->token);
-                
-                Mail::raw(
-                    "Une nouvelle tâche a été ajoutée à la liste '{$listTitle}' :\n\n" .
+                $emailBody = "Une nouvelle tâche a été ajoutée à la liste '{$listTitle}' :\n\n" .
                     "Tâche : {$todo->text}\n" .
                     "Créée par : {$todo->pseudo}\n" .
                     "Date : " . date('d/m/Y H:i') . "\n\n" .
                     "Vous pouvez consulter la liste à l'adresse suivante :\n" .
-                    $listUrl,
-                    function ($message) use ($subscriber, $listTitle, $serviceName) {
-                        $message->to($subscriber->email)
-                            ->subject("[{$serviceName}] Nouvelle tâche - {$listTitle}");
-                    }
-                );
+                    $listUrl;
+                $emailSubject = "[{$serviceName}] Nouvelle tâche - {$listTitle}";
+                
+                Mail::raw($emailBody, function ($message) use ($subscriber, $emailSubject) {
+                    $message->to($subscriber->email)->subject($emailSubject);
+                });
+                
+                // Logger en mode debug
+                if (config('app.debug')) {
+                    Log::info('Email envoyé - Nouvelle tâche', [
+                        'to' => $subscriber->email,
+                        'subject' => $emailSubject,
+                        'body' => $emailBody
+                    ]);
+                }
             } catch (\Exception $e) {
-                \Log::error('Erreur envoi email nouvelle tâche : ' . $e->getMessage());
+                Log::error('Erreur envoi email nouvelle tâche : ' . $e->getMessage());
             }
         }
     }
@@ -43,22 +51,29 @@ class MailService
         foreach ($subscribers as $subscriber) {
             try {
                 $listUrl = $this->getListUrl($todo->list_id, $subscriber->token);
-                
-                Mail::raw(
-                    "Une tâche a été terminée dans la liste '{$listTitle}' :\n\n" .
+                $emailBody = "Une tâche a été terminée dans la liste '{$listTitle}' :\n\n" .
                     "Tâche : {$todo->text}\n" .
                     "Créée par : {$todo->pseudo}\n" .
                     "Date de création : " . date('d/m/Y H:i', strtotime($todo->created_at)) . "\n" .
                     "Date de complétion : " . date('d/m/Y H:i') . "\n\n" .
                     "Vous pouvez consulter la liste à l'adresse suivante :\n" .
-                    $listUrl,
-                    function ($message) use ($subscriber, $listTitle, $serviceName) {
-                        $message->to($subscriber->email)
-                            ->subject("[{$serviceName}] Tâche terminée - {$listTitle}");
-                    }
-                );
+                    $listUrl;
+                $emailSubject = "[{$serviceName}] Tâche terminée - {$listTitle}";
+                
+                Mail::raw($emailBody, function ($message) use ($subscriber, $emailSubject) {
+                    $message->to($subscriber->email)->subject($emailSubject);
+                });
+                
+                // Logger en mode debug
+                if (config('app.debug')) {
+                    Log::info('Email envoyé - Tâche terminée', [
+                        'to' => $subscriber->email,
+                        'subject' => $emailSubject,
+                        'body' => $emailBody
+                    ]);
+                }
             } catch (\Exception $e) {
-                \Log::error('Erreur envoi email tâche terminée : ' . $e->getMessage());
+                Log::error('Erreur envoi email tâche terminée : ' . $e->getMessage());
             }
         }
     }
@@ -70,8 +85,7 @@ class MailService
     {
         try {
             $serviceName = env('TODO_SERVICE_NAME', 'SimpleTodo');
-            Mail::raw(
-                "Bienvenue dans la liste '{$listTitle}' !\n\n" .
+            $emailBody = "Bienvenue dans la liste '{$listTitle}' !\n\n" .
                 "Vous êtes maintenant inscrit pour recevoir des notifications par email.\n\n" .
                 "Vous serez informé de :\n" .
                 "• Les nouvelles tâches ajoutées\n" .
@@ -79,14 +93,23 @@ class MailService
                 "Cliquez sur le lien ci-dessous pour accéder à la liste :\n\n" .
                 $listUrl . "\n\n" .
                 "Pour vous désinscrire, utilisez le bouton dans les paramètres de la liste.\n\n" .
-                "Bon travail !",
-                function ($message) use ($subscriber, $listTitle, $serviceName) {
-                    $message->to($subscriber->email)
-                        ->subject("[{$serviceName}] Bienvenue dans {$listTitle}");
-                }
-            );
+                "Bon travail !";
+            $emailSubject = "[{$serviceName}] Bienvenue dans {$listTitle}";
+            
+            Mail::raw($emailBody, function ($message) use ($subscriber, $emailSubject) {
+                $message->to($subscriber->email)->subject($emailSubject);
+            });
+            
+            // Logger en mode debug
+            if (config('app.debug')) {
+                Log::info('Email envoyé - Bienvenue', [
+                    'to' => $subscriber->email,
+                    'subject' => $emailSubject,
+                    'body' => $emailBody
+                ]);
+            }
         } catch (\Exception $e) {
-            \Log::error('Erreur envoi email de bienvenue : ' . $e->getMessage());
+            Log::error('Erreur envoi email de bienvenue : ' . $e->getMessage());
         }
     }
     
@@ -97,8 +120,7 @@ class MailService
     {
         try {
             $serviceName = env('TODO_SERVICE_NAME', 'SimpleTodo');
-            Mail::raw(
-                "Invitation à collaborer sur une liste de tâches\n\n" .
+            $emailBody = "Invitation à collaborer sur une liste de tâches\n\n" .
                 "{$invitedBy} vous invite à collaborer sur la liste '{$listTitle}' !\n\n" .
                 "SimpleTodo est une application de gestion de tâches collaborative qui vous permet de :\n" .
                 "• Créer et organiser des tâches\n" .
@@ -108,14 +130,23 @@ class MailService
                 "Cliquez sur le lien ci-dessous pour accéder à la liste :\n\n" .
                 $listUrl . "\n\n" .
                 "Vous pouvez commencer à travailler immédiatement !\n\n" .
-                "À bientôt sur {$serviceName} !",
-                function ($message) use ($email, $listTitle, $invitedBy, $serviceName) {
-                    $message->to($email)
-                        ->subject("[{$serviceName}] Invitation à collaborer sur {$listTitle}");
-                }
-            );
+                "À bientôt sur {$serviceName} !";
+            $emailSubject = "[{$serviceName}] Invitation à collaborer sur {$listTitle}";
+            
+            Mail::raw($emailBody, function ($message) use ($email, $emailSubject) {
+                $message->to($email)->subject($emailSubject);
+            });
+            
+            // Logger en mode debug
+            if (config('app.debug')) {
+                Log::info('Email envoyé - Invitation', [
+                    'to' => $email,
+                    'subject' => $emailSubject,
+                    'body' => $emailBody
+                ]);
+            }
         } catch (\Exception $e) {
-            \Log::error('Erreur envoi email d\'invitation : ' . $e->getMessage());
+            Log::error('Erreur envoi email d\'invitation : ' . $e->getMessage());
         }
     }
     
@@ -131,6 +162,15 @@ class MailService
             Mail::raw($body, function ($message) use ($to, $subject) {
                 $message->to($to)->subject($subject);
             });
+            
+            // Logger en mode debug
+            if (config('app.debug')) {
+                Log::info('Email envoyé - Raw', [
+                    'to' => $to,
+                    'subject' => $subject,
+                    'body' => $body
+                ]);
+            }
         } catch (\Exception $e) {
             throw $e;
         }

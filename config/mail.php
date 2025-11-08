@@ -19,13 +19,7 @@ return [
         ],
         
         'mailgun' => [
-            'transport' => 'smtp',
-            'host' => env('MAILGUN_SMTP_HOST', 'smtp.mailgun.org'),
-            'port' => env('MAILGUN_SMTP_PORT', 587),
-            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
-            'username' => env('MAILGUN_SMTP_USERNAME'),
-            'password' => env('MAILGUN_SMTP_PASSWORD'),
-            'timeout' => null,
+            'transport' => 'mailgun',
         ],
         
         'sendmail' => [

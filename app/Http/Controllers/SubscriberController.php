@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\MailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class SubscriberController extends Controller
@@ -228,12 +229,22 @@ class SubscriberController extends Controller
             $emailBody .= "Cliquez sur ces liens pour accéder directement à vos listes.\n\n";
             $emailBody .= "À bientôt sur {$serviceName} !";
             
-            Mail::raw($emailBody, function ($message) use ($email, $serviceName) {
-                $message->to($email)
-                    ->subject("[{$serviceName}] Vos liens d'authentification");
+            $emailSubject = "[{$serviceName}] Vos liens d'authentification";
+            
+            Mail::raw($emailBody, function ($message) use ($email, $emailSubject) {
+                $message->to($email)->subject($emailSubject);
             });
+            
+            // Logger en mode debug
+            if (config('app.debug')) {
+                Log::info('Email envoyé - Authentification', [
+                    'to' => $email,
+                    'subject' => $emailSubject,
+                    'body' => $emailBody
+                ]);
+            }
         } catch (\Exception $e) {
-            \Log::error('Erreur envoi email authentification : ' . $e->getMessage());
+            Log::error('Erreur envoi email authentification : ' . $e->getMessage());
             return response()->json(['message' => 'Erreur lors de l\'envoi de l\'email'], 500);
         }
         
