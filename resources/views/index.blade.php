@@ -49,7 +49,7 @@
                 
                 <!-- Pseudo et Email actuels -->
                 <div id="userInfo" class="d-flex align-items-center mb-2" style="display: none;">
-                    <span class="text-white user-pseudo" style="display: none;"><i class="bi bi-person-circle"></i> <span class="user-pseudo-text"></span></span>
+                    <span class="text-white user-pseudo" style="display: none;"><i class="bi bi-person-circle me-1"></i> <span class="user-pseudo-text"></span></span>
                     <span class="text-white ms-3" id="emailBadge" style="display: none;"><i class="bi bi-envelope-check"></i> Notifications</span>
                     <button class="btn btn-sm btn-light ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#userSettings">
                         <i class="bi bi-gear"></i>

@@ -49,14 +49,6 @@
             padding: 3px 8px;
             margin-left: 10px;
         }
-        .btn-circle {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
         .input-group {
             margin-bottom: 20px;
         }

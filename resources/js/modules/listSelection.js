@@ -1,4 +1,5 @@
 import { API_BASE_URL, getListId, setListId, urlParams } from '../state';
+import { alertBs } from './alert';
 import {
     getCurrentUserEmail,
     getStoredEmail,
@@ -12,7 +13,7 @@ function generateListId() {
 function showListSelectionScreen() {
     const currentEmail = getCurrentUserEmail();
     const headerEmailBadge = currentEmail
-        ? `<span class="badge bg-light text-dark user-email" style="font-size: 0.85rem;">${currentEmail}</span>`
+        ? `<span class="badge bg-light text-dark" style="font-size: 0.85rem;">${currentEmail}</span>`
         : '';
     const selectionPlaceholder = currentEmail
         ? `-- Sélectionner une liste pour ${currentEmail} --`
@@ -161,7 +162,7 @@ async function loadSelectedList() {
                 }
             }
 
-            alert('Cette liste n\'existe plus. Retour à l\'accueil.');
+            alertBs('Cette liste n\'existe plus. Retour à l\'accueil.');
             window.location.href = '/';
             return;
         }
@@ -169,7 +170,7 @@ async function loadSelectedList() {
         window.location.href = `/${selectedListId}`;
     } catch (error) {
         console.error('Erreur lors de la vérification de la liste:', error);
-        alert('Erreur lors de la vérification de la liste.');
+        alertBs('Erreur lors de la vérification de la liste.');
     }
 }
 
@@ -183,7 +184,7 @@ async function createNewList() {
 
     const title = titleInput.value.trim();
     if (!title) {
-        alert('Veuillez entrer un nom pour la liste');
+        alertBs('Veuillez entrer un nom pour la liste');
         return;
     }
 
@@ -191,7 +192,7 @@ async function createNewList() {
     const email = emailInput || getStoredEmail();
 
     if (!email) {
-        alert('Veuillez entrer votre email pour devenir le créateur de la liste');
+        alertBs('Veuillez entrer votre email pour devenir le créateur de la liste');
         if (emailInputEl) {
             emailInputEl.focus();
         }
@@ -217,11 +218,11 @@ async function createNewList() {
         if (response.ok) {
             window.location.href = `/${newListId}`;
         } else {
-            alert('Erreur lors de la création de la liste');
+            alertBs('Erreur lors de la création de la liste');
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur de connexion lors de la création de la liste');
+        alertBs('Erreur de connexion lors de la création de la liste');
     }
 }
 
@@ -234,7 +235,7 @@ async function requestAuthEmail() {
     const emailInput = emailInputEl.value.trim();
 
     if (!emailInput || !emailInput.includes('@')) {
-        alert('Veuillez entrer une adresse email valide');
+        alertBs('Veuillez entrer une adresse email valide');
         return;
     }
 
@@ -246,15 +247,15 @@ async function requestAuthEmail() {
         });
 
         if (response.ok) {
-            alert('Un email avec vos liens d\'authentification a été envoyé !');
+            alertBs('Un email avec vos liens d\'authentification a été envoyé !');
             emailInputEl.value = '';
         } else {
             const data = await response.json();
-            alert(data.message || 'Erreur lors de l\'envoi de l\'email');
+            alertBs(data.message || 'Erreur lors de l\'envoi de l\'email');
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur de connexion');
+        alertBs('Erreur de connexion');
     }
 }
 

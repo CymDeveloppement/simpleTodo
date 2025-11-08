@@ -32,6 +32,8 @@ Route::post('/subscribers/{listId}', [App\Http\Controllers\SubscriberController:
 Route::delete('/subscribers/{listId}', [App\Http\Controllers\SubscriberController::class, 'unsubscribe']);
 Route::post('/subscribers/{listId}/check', [App\Http\Controllers\SubscriberController::class, 'check']);
 Route::post('/subscribers/{listId}/{subscriberId}/resend', [App\Http\Controllers\SubscriberController::class, 'resendInvitation']);
+Route::post('/subscribers/{listId}/todos/{todoId}/last-comment', [App\Http\Controllers\SubscriberController::class, 'updateLastViewedComment']);
+Route::get('/subscribers/{listId}/todos/{todoId}/last-comment', [App\Http\Controllers\SubscriberController::class, 'getLastViewedComment']);
 Route::get('/mylists', [App\Http\Controllers\SubscriberController::class, 'getMyLists']);
 Route::get('/auth/token/{token}', [App\Http\Controllers\SubscriberController::class, 'authenticateWithToken']);
 Route::post('/auth/request-email', [App\Http\Controllers\SubscriberController::class, 'requestAuthEmail']);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Subscriber;
+use App\Models\Comment;
 use App\Models\User;
 use App\Services\MailService;
 use Illuminate\Http\Request;
@@ -164,6 +165,83 @@ class SubscriberController extends Controller
         }
         
         return response()->json($lists);
+    }
+
+    public function updateLastViewedComment(Request $request, $listId, $todoId)
+    {
+        $this->validate($request, [
+            'email' => 'required|email|max:255',
+            'comment_id' => 'required|integer|min:1',
+        ]);
+
+        $email = strtolower(trim($request->input('email')));
+
+        $subscriber = Subscriber::where('list_id', $listId)
+            ->whereRaw('lower(email) = ?', [$email])
+            ->first();
+
+        if (!$subscriber) {
+            return response()->json(['message' => 'Subscriber not found'], 404);
+        }
+
+        $metadata = $subscriber->metadata ?? [];
+        if (!isset($metadata['comments']) || !is_array($metadata['comments'])) {
+            $metadata['comments'] = [];
+        }
+
+        $current = (int) ($metadata['comments'][$todoId] ?? 0);
+        $newId = (int) $request->input('comment_id');
+
+        if ($newId > $current) {
+            $metadata['comments'][$todoId] = $newId;
+            $subscriber->metadata = $metadata;
+            $subscriber->save();
+        }
+
+        $storedId = (int) ($metadata['comments'][$todoId] ?? $current);
+
+        $newComments = Comment::where('list_id', $listId)
+            ->where('todo_id', $todoId)
+            ->where('id', '>', $storedId)
+            ->count();
+
+        return response()->json([
+            'stored_comment_id' => $storedId,
+            'new_comments' => $newComments,
+        ]);
+    }
+
+    public function getLastViewedComment(Request $request, $listId, $todoId)
+    {
+        $this->validate($request, [
+            'email' => 'required|email|max:255',
+        ]);
+
+        $email = strtolower(trim($request->input('email')));
+
+        $subscriber = Subscriber::where('list_id', $listId)
+            ->whereRaw('lower(email) = ?', [$email])
+            ->first();
+
+        if (!$subscriber) {
+            return response()->json([
+                'stored_comment_id' => 0,
+                'new_comments' => 0,
+            ]);
+        }
+
+        $metadata = $subscriber->metadata ?? [];
+        $storedId = (int) ($metadata['comments'][$todoId] ?? 0);
+
+        $newComments = Comment::where('list_id', $listId)
+            ->where('todo_id', $todoId)
+            ->where('id', '>', $storedId)
+            ->count();
+
+        return response()->json([
+            'stored_comment_id' => $storedId,
+            'new_comments' => $newComments,
+        ]);
     }
 
     public function authenticateWithToken($token)

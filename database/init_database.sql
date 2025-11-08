@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS "subscribers" (
     "pseudo" TEXT DEFAULT NULL,
     "token" TEXT DEFAULT NULL,
     "email_verified" INTEGER DEFAULT 0,
+    "metadata" TEXT DEFAULT NULL,
     "created_at" TEXT,
     "updated_at" TEXT
 );

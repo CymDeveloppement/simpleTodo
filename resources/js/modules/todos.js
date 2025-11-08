@@ -1,5 +1,6 @@
 import { API_BASE_URL, getListId } from '../state';
 import { getCurrentUserEmail } from './auth';
+import { alertBs, confirmBs } from './alert';
 
 let listId = getListId();
 
@@ -105,6 +106,12 @@ function displayTodos(todos) {
     }
 
     listContainer.innerHTML = html;
+
+    if (window.updateCommentBadge) {
+        todos.forEach(todo => {
+            window.updateCommentBadge(todo.id);
+        });
+    }
 }
 
 function renderTodo(todo) {
@@ -113,8 +120,8 @@ function renderTodo(todo) {
     const toggleIcon = todo.completed ? 'bi-arrow-counterclockwise' : 'bi-check-lg';
     const toggleTitle = todo.completed ? 'Marquer comme non terminé' : 'Marquer comme terminé';
     const toggleButtonClass = todo.completed
-        ? 'btn btn-sm btn-outline-success btn-circle flex-shrink-0'
-        : 'btn btn-sm btn-outline-primary btn-circle flex-shrink-0';
+        ? 'btn btn-sm btn-outline-success flex-shrink-0'
+        : 'btn btn-sm btn-outline-primary flex-shrink-0';
     const creatorBadge = todo.pseudo
         ? `<span class="badge bg-light text-dark pseudo-badge ms-2"><i class="bi bi-person-fill"></i> ${escapeHtml(todo.pseudo)}</span>`
         : '';
@@ -124,6 +131,10 @@ function renderTodo(todo) {
     const categoryBadge = todo.category
         ? `<span class="badge" style="background-color:${todo.category.color};">${escapeHtml(todo.category.name)}</span>`
         : '';
+
+    const commentsButtonClass = commentCount > 0
+        ? 'btn btn-sm btn-outline-primary'
+        : 'btn btn-sm btn-outline-secondary';
 
     return `
         <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" data-category="${todo.category ? todo.category.id : ''}" data-assigned="${todo.assigned_to ? escapeHtml(todo.assigned_to) : ''}" data-due-date="${todo.due_date || ''}" data-completed="${todo.completed ? '1' : '0'}">
@@ -146,13 +157,14 @@ function renderTodo(todo) {
                     </div>
                 </div>
                 <div class="d-flex gap-2 flex-shrink-0">
-                    <button class="btn btn-sm btn-outline-secondary btn-circle" title="Afficher les commentaires"
+                    <button id="comment-button-${todo.id}" class="${commentsButtonClass} btn-comment-wrapper" title="Afficher les commentaires"
                         onclick="event.stopPropagation(); toggleComments(${todo.id})">
                         <i class="bi bi-chat-dots"></i>
                         <span class="comment-badge" id="comment-badge-${todo.id}" ${commentCount > 0 ? '' : 'style="display:none;"'}>${commentCount}</span>
+                        <span class="comment-badge comment-badge-new d-none" id="comment-new-badge-${todo.id}"></span>
                     </button>
                     <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary btn-circle dropdown-toggle" type="button"
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
                             id="dropdownMenuButton${todo.id}" data-bs-toggle="dropdown" aria-expanded="false"
                             onclick="event.stopPropagation();">
                             <i class="bi bi-three-dots"></i>
@@ -227,7 +239,7 @@ async function addTodo() {
 
     const text = input.value.trim();
     if (!text) {
-        alert('Veuillez entrer une tâche');
+        alertBs('Veuillez entrer une tâche');
         return;
     }
 
@@ -247,11 +259,11 @@ async function addTodo() {
             input.value = '';
             loadTodos();
         } else {
-            alert('Erreur lors de l\'ajout de la tâche');
+            alertBs('Erreur lors de l\'ajout de la tâche');
         }
     } catch (error) {
         console.error('Erreur lors de l\'ajout de la tâche:', error);
-        alert('Erreur de connexion');
+        alertBs('Erreur de connexion');
     }
 }
 
@@ -276,18 +288,19 @@ async function toggleTodo(id) {
         } else if (response.status === 422) {
             const error = await response.json().catch(() => null);
             console.error('Validation toggle todo:', error);
-            alert(error?.message || 'Validation impossible pour cette tâche');
+            alertBs(error?.message || 'Validation impossible pour cette tâche');
         } else {
-            alert('Erreur lors du changement d\'état de la tâche');
+            alertBs('Erreur lors du changement d\'état de la tâche');
         }
     } catch (error) {
         console.error('Erreur toggle todo:', error);
-        alert('Erreur de connexion');
+        alertBs('Erreur de connexion');
     }
 }
 
 async function deleteTodo(id) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+    const confirmed = await confirmBs('Êtes-vous sûr de vouloir supprimer cette tâche ?');
+    if (!confirmed) {
         return;
     }
 
@@ -299,16 +312,17 @@ async function deleteTodo(id) {
         if (response.ok) {
             loadTodos();
         } else {
-            alert('Erreur lors de la suppression de la tâche');
+            alertBs('Erreur lors de la suppression de la tâche');
         }
     } catch (error) {
         console.error('Erreur suppression todo:', error);
-        alert('Erreur de connexion');
+        alertBs('Erreur de connexion');
     }
 }
 
 async function clearCompleted() {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer toutes les tâches terminées ?')) {
+    const confirmed = await confirmBs('Êtes-vous sûr de vouloir supprimer toutes les tâches terminées ?');
+    if (!confirmed) {
         return;
     }
 
@@ -320,11 +334,11 @@ async function clearCompleted() {
         if (response.ok) {
             loadTodos();
         } else {
-            alert('Erreur lors de la suppression des tâches terminées');
+            alertBs('Erreur lors de la suppression des tâches terminées');
         }
     } catch (error) {
         console.error('Erreur clear completed:', error);
-        alert('Erreur de connexion');
+        alertBs('Erreur de connexion');
     }
 }
 
@@ -335,7 +349,7 @@ async function assignTodo(id) {
         : getCurrentUserEmail();
 
     if (!email) {
-        alert("Impossible d'assigner la tâche : votre adresse email est introuvable. Veuillez vous reconnecter.");
+        alertBs("Impossible d'assigner la tâche : votre adresse email est introuvable. Veuillez vous reconnecter.");
         return;
     }
 
@@ -346,7 +360,7 @@ async function assignTodo(id) {
     }
 
     if (!pseudo) {
-        alert('Veuillez enregistrer votre pseudo avant de vous assigner une tâche.');
+        alertBs('Veuillez enregistrer votre pseudo avant de vous assigner une tâche.');
         return;
     }
 
@@ -368,20 +382,20 @@ async function assignTodo(id) {
         } else if (response.status === 422) {
             const data = await response.json().catch(() => null);
             console.error('Validation assign todo:', data);
-            alert((data && data.message) || "Impossible d'assigner la tâche (422)");
+            alertBs((data && data.message) || "Impossible d'assigner la tâche (422)");
         } else {
-            alert("Erreur lors de l'assignation de la tâche");
+            alertBs("Erreur lors de l'assignation de la tâche");
         }
     } catch (error) {
         console.error('Erreur assign todo:', error);
-        alert('Erreur de connexion');
+        alertBs('Erreur de connexion');
     }
 }
 
 async function changeDueDate(todoId) {
     const todoElement = document.querySelector(`[data-id="${todoId}"]`);
     if (!todoElement) {
-        alert('Impossible de récupérer la tâche ciblée. Veuillez recharger la page.');
+        alertBs('Impossible de récupérer la tâche ciblée. Veuillez recharger la page.');
         return;
     }
 

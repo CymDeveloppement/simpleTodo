@@ -15,5 +15,10 @@ class Subscriber extends Model
         'pseudo',
         'token',
         'email_verified',
+        'metadata',
+    ];
+
+    protected $casts = [
+        'metadata' => 'array',
     ];
 }

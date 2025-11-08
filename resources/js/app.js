@@ -1,4 +1,5 @@
 import '../css/app.css';
+import { alertBs, confirmBs } from './modules/alert.js';
 
 import { API_BASE_URL, urlParams, getListId, setListId } from './state';
 import {
@@ -36,6 +37,8 @@ Object.assign(window, {
     loadSelectedList,
     createNewList,
     requestAuthEmail,
+    alertBs,
+    confirmBs,
     addTodo,
     saveTitle,
     cancelTitleEdit,
@@ -61,6 +64,7 @@ Object.assign(window, {
     deleteTodo,
     addComment,
     resendSubscriberLink,
+    updateCommentBadge,
 });
 
 bootstrapAuthContext();
@@ -109,7 +113,7 @@ function savePseudo() {
         // Fermer le collapse après sauvegarde
         const collapse = new bootstrap.Collapse(document.getElementById('userSettings'), { toggle: true });
     } else {
-        alert('Veuillez entrer un pseudo');
+        alertBs('Veuillez entrer un pseudo');
     }
 }
 
@@ -392,7 +396,7 @@ function savePseudoFromModal() {
         const modal = bootstrap.Modal.getInstance(document.getElementById('pseudoModal'));
         modal.hide();
     } else {
-        alert('Veuillez entrer un pseudo');
+        alertBs('Veuillez entrer un pseudo');
     }
 }
 
@@ -433,7 +437,7 @@ function updateStats(todos) {
 async function changeDueDate(todoId) {
     const todoElement = document.querySelector(`[data-id="${todoId}"]`);
     if (!todoElement) {
-        alert('Impossible de récupérer la tâche ciblée. Veuillez recharger la page.');
+        alertBs('Impossible de récupérer la tâche ciblée. Veuillez recharger la page.');
         return;
     }
 
@@ -504,11 +508,11 @@ async function changeDueDate(todoId) {
                 closeModal();
                 loadTodos();
             } else {
-                alert('Erreur lors de la modification de la date d\'échéance');
+                alertBs('Erreur lors de la modification de la date d\'échéance');
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur lors de la modification de la date d\'échéance');
+            alertBs('Erreur lors de la modification de la date d\'échéance');
         }
     });
 
@@ -528,11 +532,11 @@ async function changeDueDate(todoId) {
                 closeModal();
                 loadTodos();
             } else {
-                alert('Erreur lors de la suppression de la date d\'échéance');
+                alertBs('Erreur lors de la suppression de la date d\'échéance');
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur lors de la suppression de la date d\'échéance');
+            alertBs('Erreur lors de la suppression de la date d\'échéance');
         }
     });
 }
@@ -614,11 +618,11 @@ async function changeCategory(todoId) {
                 setTimeout(() => document.getElementById('categoryModal').remove(), 300);
                 loadTodos();
             } else {
-                alert('Erreur lors du changement de catégorie');
+                alertBs('Erreur lors du changement de catégorie');
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur lors du changement de catégorie');
+            alertBs('Erreur lors du changement de catégorie');
         }
     };
 }
@@ -674,9 +678,16 @@ async function toggleComments(todoId) {
 
 async function loadComments(todoId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/comments/${listId}/${todoId}`);
-        const comments = await response.json();
+        const [comments, metadata] = await Promise.all([
+            fetch(`${API_BASE_URL}/api/comments/${listId}/${todoId}`).then(res => res.json()),
+            fetchLastViewedComment(todoId),
+        ]);
+        const lastCommentId = extractLastCommentId(comments);
         displayComments(todoId, comments);
+        updateCommentBadgeState(todoId, comments.length, metadata.new_comments, lastCommentId);
+        if (lastCommentId) {
+            await syncLastViewedComment(todoId, lastCommentId);
+        }
     } catch (error) {
         console.error('Erreur lors du chargement des commentaires:', error);
     }
@@ -684,19 +695,18 @@ async function loadComments(todoId) {
 
 async function updateCommentBadge(todoId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/comments/${listId}/${todoId}`);
-        const comments = await response.json();
+        const [comments, metadata] = await Promise.all([
+            fetch(`${API_BASE_URL}/api/comments/${listId}/${todoId}`).then(res => res.json()),
+            fetchLastViewedComment(todoId),
+        ]);
         const badge = document.getElementById(`comment-badge-${todoId}`);
+        const lastCommentId = extractLastCommentId(comments);
         if (!badge) {
             return;
         }
 
-        if (comments.length > 0) {
-            badge.textContent = comments.length;
-            badge.style.display = 'flex';
-        } else {
-            badge.style.display = 'none';
-        }
+        updateTotalCommentBadge(badge, comments.length);
+        updateCommentBadgeState(todoId, comments.length, metadata.new_comments, lastCommentId);
     } catch (error) {
         console.error('Erreur lors du chargement du badge:', error);
     }
@@ -707,6 +717,8 @@ function displayComments(todoId, comments) {
     
     if (comments.length === 0) {
         commentsList.innerHTML = '<div class="text-muted small">Aucun commentaire</div>';
+        updateCommentBadgeState(todoId, 0, 0, 0);
+        setupCommentInput(todoId);
         return;
     }
     
@@ -720,20 +732,36 @@ function displayComments(todoId, comments) {
         </div>
         `;
     }).join('');
+
+    setupCommentInput(todoId);
+}
+
+function extractLastCommentId(comments) {
+    if (!Array.isArray(comments) || comments.length === 0) {
+        return 0;
+    }
+    return comments.reduce((max, comment) => {
+        const commentId = Number(comment?.id) || 0;
+        return commentId > max ? commentId : max;
+    }, 0);
 }
 
 async function addComment(todoId) {
     const input = document.getElementById(`comment-input-${todoId}`);
+    if (!input) {
+        return;
+    }
+
     const text = input.value.trim();
     const pseudo = getPseudo();
     
     if (!text) {
-        alert('Veuillez entrer un commentaire');
+        alertBs('Veuillez entrer un commentaire');
         return;
     }
     
     if (!pseudo) {
-        alert('Veuillez d\'abord entrer votre pseudo');
+        alertBs('Veuillez d\'abord entrer votre pseudo');
         return;
     }
     
@@ -756,8 +784,104 @@ async function addComment(todoId) {
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de l\'ajout du commentaire');
+        alertBs('Erreur lors de l\'ajout du commentaire');
     }
+}
+
+function setupCommentInput(todoId) {
+    const input = document.getElementById(`comment-input-${todoId}`);
+    if (!input || input.dataset.enterHandler === 'true') {
+        return;
+    }
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            addComment(todoId);
+        }
+    });
+
+    input.dataset.enterHandler = 'true';
+}
+
+function setCommentButtonState(todoId, commentCount) {
+    const button = document.getElementById(`comment-button-${todoId}`);
+    if (!button) {
+        return;
+    }
+    button.classList.remove('btn-outline-secondary', 'btn-outline-primary');
+    if (commentCount > 0) {
+        button.classList.add('btn-outline-primary');
+    } else {
+        button.classList.add('btn-outline-secondary');
+    }
+}
+
+function updateCommentBadgeState(todoId, totalComments, newCount, lastCommentId) {
+    setCommentButtonState(todoId, totalComments);
+
+    const newBadge = document.getElementById(`comment-new-badge-${todoId}`);
+    if (!newBadge) {
+        return;
+    }
+    updateTotalCommentBadge(newBadge, newCount);
+    newBadge.dataset.lastCommentId = String(lastCommentId || '');
+}
+
+async function syncLastViewedComment(todoId, lastId) {
+    const email = getStoredEmail();
+    if (!email || !listId || !lastId) {
+        return 0;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/subscribers/${listId}/todos/${todoId}/last-comment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email,
+                comment_id: lastId,
+            }),
+        });
+
+        if (!response.ok) {
+            return 0;
+        }
+
+        const data = await response.json();
+        return Number(data?.new_comments || 0);
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour du dernier commentaire consulté:', error);
+        return 0;
+    }
+}
+
+async function fetchLastViewedComment(todoId) {
+    const email = getStoredEmail();
+    if (!email || !listId) {
+        return { stored_comment_id: 0, new_comments: 0 };
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/subscribers/${listId}/todos/${todoId}/last-comment?email=${encodeURIComponent(email)}`);
+        if (!response.ok) {
+            return { stored_comment_id: 0, new_comments: 0 };
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Erreur lors de la récupération du dernier commentaire consulté:', error);
+        return { stored_comment_id: 0, new_comments: 0 };
+    }
+}
+function updateTotalCommentBadge(badge, count) {
+    if (!badge) {
+        return;
+    }
+
+    badge.textContent = count > 0 ? count : '';
+    badge.classList.toggle('d-none', count === 0);
 }
 
 // Fonctions pour gérer le titre de la liste
@@ -901,19 +1025,20 @@ function updateDeleteButton() {
 }
 
 // Confirmer la suppression de la liste
-function confirmDeleteList() {
-    if (!confirm('Attention : Cette action est irréversible !\n\nVoulez-vous vraiment supprimer cette liste et toutes ses tâches ?')) {
+async function confirmDeleteList() {
+    const confirmed = await confirmBs('Attention : Cette action est irréversible !\n\nVoulez-vous vraiment supprimer cette liste et toutes ses tâches ?');
+    if (!confirmed) {
         return;
     }
     
-    deleteList();
+    await deleteList();
 }
 
 // Supprimer la liste (uniquement pour le créateur)
 async function deleteList() {
     const email = getStoredEmail();
     if (!email) {
-        alert('Erreur : Email non trouvé');
+        alertBs('Erreur : Email non trouvé');
         return;
     }
     
@@ -924,16 +1049,16 @@ async function deleteList() {
         });
         
         if (response.ok) {
-            alert('Liste supprimée avec succès');
+            alertBs('Liste supprimée avec succès');
             // Rediriger vers la page de sélection de liste
             showListSelectionScreen();
         } else {
             const error = await response.json();
-            alert(error.error || 'Erreur lors de la suppression de la liste');
+            alertBs(error.error || 'Erreur lors de la suppression de la liste');
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de la suppression de la liste');
+        alertBs('Erreur lors de la suppression de la liste');
     }
 }
 
@@ -942,7 +1067,7 @@ async function saveTitle() {
     const title = titleField.value.trim();
     
     if (!title) {
-        alert('Veuillez entrer un titre');
+        alertBs('Veuillez entrer un titre');
         return;
     }
     
@@ -964,18 +1089,18 @@ async function saveTitle() {
             document.getElementById('listTitle').textContent = title;
             document.getElementById('titleInput').style.display = 'none';
         } else {
-            alert('Erreur lors de la sauvegarde du titre');
+            alertBs('Erreur lors de la sauvegarde du titre');
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de la sauvegarde du titre');
+        alertBs('Erreur lors de la sauvegarde du titre');
     }
 }
 
 // Fonction pour partager l'URL de la liste (sans token)
 function shareListUrl() {
     if (!listId) {
-        alert('Aucune liste sélectionnée');
+        alertBs('Aucune liste sélectionnée');
         return;
     }
     
@@ -986,7 +1111,7 @@ function shareListUrl() {
     // Copier dans le presse-papiers
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(shareUrl).then(() => {
-            alert('Lien copié dans le presse-papiers !\n\n' + shareUrl);
+            alertBs('Lien copié dans le presse-papiers !\n\n' + shareUrl);
         }).catch(err => {
             console.error('Erreur lors de la copie:', err);
             fallbackCopyToClipboard(shareUrl);
@@ -1008,7 +1133,7 @@ function fallbackCopyToClipboard(text) {
     
     try {
         document.execCommand('copy');
-        alert('Lien copié dans le presse-papiers !\n\n' + text);
+        alertBs('Lien copié dans le presse-papiers !\n\n' + text);
     } catch (err) {
         console.error('Erreur lors de la copie:', err);
         prompt('Copiez ce lien manuellement:', text);
@@ -1091,7 +1216,7 @@ async function subscribe() {
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de l\'inscription');
+        alertBs('Erreur lors de l\'inscription');
     }
 }
 
@@ -1122,7 +1247,7 @@ async function unsubscribe() {
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de la désinscription');
+        alertBs('Erreur lors de la désinscription');
     }
 }
 
@@ -1192,7 +1317,7 @@ async function displaySubscribers(subscribers) {
                     ${sub.pseudo ? `<span class="text-white">(${escapeHtml(sub.email)})</span>` : ''}
                 </small>
             </div>
-            <button class="btn btn-sm btn-light btn-circle" onclick="resendSubscriberLink(${sub.id})" title="Renvoyer le lien">
+            <button class="btn btn-sm btn-light" onclick="resendSubscriberLink(${sub.id})" title="Renvoyer le lien">
                 <i class="bi bi-send"></i>
             </button>
         </div>
@@ -1396,7 +1521,7 @@ async function addCategory() {
     const color = document.getElementById('newCategoryColor').value;
     
     if (!name) {
-        alert('Veuillez entrer un nom de catégorie');
+        alertBs('Veuillez entrer un nom de catégorie');
         return;
     }
     
@@ -1419,12 +1544,13 @@ async function addCategory() {
         }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de l\'ajout de la catégorie');
+        alertBs('Erreur lors de l\'ajout de la catégorie');
     }
 }
 
 async function deleteCategory(id) {
-    if (!confirm('Supprimer cette catégorie ?')) {
+    const confirmed = await confirmBs('Supprimer cette catégorie ?');
+    if (!confirmed) {
         return;
     }
     
