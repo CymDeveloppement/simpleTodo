@@ -85,22 +85,22 @@ class UpdateController extends Controller
         $checker = app(\App\Services\UpdateChecker::class);
 
         $local = $checker->getLocalVersion();
-        $remoteRelease = $checker->getRemoteRelease();
+        $remoteTag = $checker->getRemoteVersion();
 
-        if (!$remoteRelease || empty($remoteRelease['tag_name'])) {
+        if ($remoteTag === null) {
             return response()->json([
                 'success' => false,
-                'message' => 'Impossible de récupérer la release distante',
-                'remote_release' => $remoteRelease,
+                'message' => 'Impossible de récupérer le tag distant',
+                'remote_tag' => null,
             ], 500);
         }
 
         return response()->json([
             'success' => true,
             'local_version' => $local,
-            'remote_tag' => $remoteRelease['tag_name'],
-            'remote_name' => $remoteRelease['name'],
-            'has_update' => $local ? $local !== $remoteRelease['tag_name'] : true,
+            'remote_tag' => $remoteTag,
+            'remote_name' => null,
+            'has_update' => $local ? $local !== $remoteTag : true,
         ]);
     }
 }
