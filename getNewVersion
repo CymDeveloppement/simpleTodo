@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+REMOTE_SPEC="${1:-origin}"
+
+if ! command -v git >/dev/null 2>&1; then
+    echo "git n'est pas disponible sur cette machine." >&2
+    exit 1
+fi
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Ce dossier n'est pas un dépôt git." >&2
+    exit 1
+fi
+
+current_tag=""
+if current_tag=$(git describe --tags --abbrev=0 2>/dev/null); then
+    :
+else
+    current_tag=""
+fi
+
+remote_target="$REMOTE_SPEC"
+if [[ "$REMOTE_SPEC" == http* ]]; then
+    remote_target="$REMOTE_SPEC"
+elif git remote get-url "$REMOTE_SPEC" >/dev/null 2>&1; then
+    remote_target="$REMOTE_SPEC"
+elif [[ "$REMOTE_SPEC" == */* ]]; then
+    remote_target="https://github.com/${REMOTE_SPEC}.git"
+else
+    echo "Remote ou dépôt distant non valide: ${REMOTE_SPEC}" >&2
+    exit 1
+fi
+
+if ! remote_output=$(git ls-remote --tags "$remote_target" 2>/dev/null); then
+    echo "Impossible de récupérer les tags distants depuis '${remote_target}'." >&2
+    exit 1
+fi
+
+set +e
+latest_remote=$(printf '%s\n' "$remote_output" | awk '{print $2}' | sed 's@refs/tags/@@' | sed 's/\^{}$//' | sort -u -V | tail -n 1)
+pipeline_status=$?
+set -e
+
+if [[ $pipeline_status -ne 0 ]]; then
+    latest_remote=""
+fi
+
+if [[ -z "${latest_remote}" ]]; then
+    printf '%s\n' "$current_tag"
+    exit 0
+fi
+
+if [[ -n "$current_tag" ]]; then
+    newest=$(printf '%s\n%s\n' "$current_tag" "$latest_remote" | sort -V | tail -n 1)
+    if [[ "$newest" == "$current_tag" ]]; then
+        printf '%s\n' "$current_tag"
+        exit 0
+    fi
+fi
+
+printf '%s\n' "$latest_remote"
+exit 0
+

@@ -8,7 +8,7 @@ class CheckUpdateCommand extends Command
 {
     protected $signature = 'simpletodo:check-update {repo? : Dépôt GitHub owner/repo (optionnel)}';
 
-    protected $description = 'Compare la version locale avec la dernière release GitHub';
+    protected $description = 'Compare la version locale avec le dernier tag distant via git';
 
     public function handle(): int
     {
@@ -26,11 +26,11 @@ class CheckUpdateCommand extends Command
 
         $remoteVersion = $checker->getRemoteVersion($repo);
         if ($remoteVersion === null) {
-            $this->error('Impossible de récupérer la version distante (Script getUpdate).');
+            $this->error('Impossible de récupérer la version distante (script getNewVersion).');
             return Command::FAILURE;
         }
 
-        $this->line("Dernière release distante : {$remoteVersion}");
+        $this->line("Dernier tag distant : {$remoteVersion}");
 
         if (!$checker->hasNewerVersion($repo)) {
             $this->info('✅ La version locale est à jour.');

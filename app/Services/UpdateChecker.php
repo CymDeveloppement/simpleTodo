@@ -2,20 +2,18 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Log;
-
 class UpdateChecker
 {
-    protected string $getCurrentScript;
-    protected string $repository;
-    protected string $apiBase;
+    protected string $localVersionScript;
+    protected string $remoteVersionScript;
+    protected ?string $defaultRemote;
 
-    public function __construct(?string $getCurrentPath = null, ?string $repository = null)
+    public function __construct(?string $localScript = null, ?string $remoteScript = null, ?string $remote = null)
     {
         $basePath = base_path();
-        $this->getCurrentScript = $getCurrentPath ?? $basePath . '/getCurrentVersion';
-        $this->repository = $repository ?? env('ADMIN_REPOSITORY', 'CymDeveloppement/simpleTodo');
-        $this->apiBase = 'https://api.github.com/repos';
+        $this->localVersionScript = $localScript ?? $basePath . '/getCurrentVersion';
+        $this->remoteVersionScript = $remoteScript ?? $basePath . '/getNewVersion';
+        $this->defaultRemote = $remote ?? env('ADMIN_REPOSITORY', 'CymDeveloppement/simpleTodo');
     }
 
     public function hasNewerVersion(?string $repo = null): bool
@@ -32,65 +30,39 @@ class UpdateChecker
 
     public function getRemoteVersion(?string $repo = null): ?string
     {
-        $release = $this->getRemoteRelease($repo);
-        return $release['tag_name'] ?? null;
-    }
+        $target = $repo ?? $this->defaultRemote;
+        $arguments = $target ? [$target] : [];
 
-    public function getRemoteRelease(?string $repo = null): ?array
-    {
-        $repoName = $repo ?? $this->repository;
-        if (!$repoName) {
-            return null;
-        }
-
-        $release = $this->requestJson("{$this->apiBase}/{$repoName}/releases/latest");
-        Log::info('Release: ' . json_encode($release));
-        if (!$release || isset($release['message'])) {
-            return null;
-        }
-
-        return [
-            'tag_name' => $release['tag_name'] ?? null,
-            'name' => $release['name'] ?? null,
-        ];
+        return $this->runScript($this->remoteVersionScript, $arguments);
     }
 
     public function getLocalVersion(): ?string
     {
-        if (!is_executable($this->getCurrentScript)) {
-            return null;
-        }
-
-        $output = shell_exec(escapeshellcmd($this->getCurrentScript));
-        if ($output === null) {
-            return null;
-        }
-
-        $trimmed = trim($output);
-        return $trimmed === '' ? null : $trimmed;
+        return $this->runScript($this->localVersionScript);
     }
 
-    protected function requestJson(string $url): mixed
+    protected function runScript(string $script, array $arguments = []): ?string
     {
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'header' => "Accept: application/vnd.github+json\r\nUser-Agent: simpletodo-update-checker\r\n",
-                'timeout' => 10,
-            ],
-        ]);
-
-
-        Log::info('Requesting JSON from URL: ' . $url);
-        Log::info('Context: ' . json_encode($context));
-        $result = file_get_contents($url, false, $context);
-        Log::info('Result: ' . json_encode($result));
-        if ($result === false) {
+        if (!is_executable($script)) {
             return null;
         }
 
-        $data = json_decode($result);
-        return (is_array($data) || is_object($data)) ? $data : null;
+        $command = escapeshellarg($script);
+        foreach ($arguments as $argument) {
+            $command .= ' ' . escapeshellarg($argument);
+        }
+
+        $output = [];
+        $exitCode = 0;
+        exec($command, $output, $exitCode);
+
+        if ($exitCode !== 0) {
+            return null;
+        }
+
+        $result = trim(implode("\n", $output));
+
+        return $result === '' ? null : $result;
     }
 }
 
