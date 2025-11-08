@@ -38,5 +38,10 @@ npm run build
 echo "3/3 Migration de la base..."
 php artisan migrate --force
 
+if grep -q '^APP_KEY=$' .env 2>/dev/null; then
+    echo "Génération de la clé applicative..."
+    php artisan key:generate --force
+fi
+
 echo "✅ Installation terminée."
 
