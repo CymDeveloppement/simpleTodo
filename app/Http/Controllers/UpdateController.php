@@ -92,6 +92,7 @@ class UpdateController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Impossible de récupérer la release distante',
+                'remote_release' => $remoteRelease,
             ], 500);
         }
 
