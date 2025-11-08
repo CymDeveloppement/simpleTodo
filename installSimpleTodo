@@ -31,6 +31,9 @@ if [[ ! -f .env && -f env.example ]]; then
     cp env.example .env
 fi
 
+echo "Préparation des répertoires de cache..."
+mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views
+
 echo "2/3 Build des assets..."
 npm install
 npm run build
