@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 class UpdateChecker
 {
     protected string $getCurrentScript;
