@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: updateSimpleTodo <tag> [--force]
+
+Met à jour le dépôt courant sur la release Git spécifiée (tag).
+- Stashe les modifications locales sauf si --force est utilisé pour écraser.
+- Fait un fetch du tag demandé puis crée/replace la branche release/<tag>.
+- Exécute les migrations artisan en fin de processus.
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+if [[ "$#" -lt 1 ]]; then
+    usage
+    exit 1
+fi
+
+TARGET_TAG="$1"
+shift || true
+
+FORCE=0
+for arg in "$@"; do
+    if [[ "$arg" == "--force" ]]; then
+        FORCE=1
+    else
+        echo "Option inconnue: $arg" >&2
+        usage
+        exit 2
+    fi
+done
+
+# Aller à la racine du projet (emplacement du script)
+cd "$(dirname "$0")"
+
+echo "=== SimpleTodo Update (tag ${TARGET_TAG}) ==="
+echo "Répertoire: $(pwd)"
+
+if ! command -v git >/dev/null 2>&1; then
+    echo "git n'est pas disponible sur cette machine." >&2
+    exit 1
+fi
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Ce dossier n'est pas un dépôt git initialisé." >&2
+    exit 1
+fi
+
+if ! git remote get-url origin >/dev/null 2>&1; then
+    echo "Aucun remote 'origin' configuré. Impossible de récupérer le tag." >&2
+    exit 1
+fi
+
+export GIT_TERMINAL_PROMPT=0
+git config apply.whitespace nowarn || true
+
+if [[ "$FORCE" == "0" ]]; then
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        echo "Des modifications locales existent."
+        echo "Utilisez --force pour les écraser, ou nettoyez le dépôt avant."
+        exit 2
+    fi
+else
+    echo "--force activé : un hard reset sera effectué."
+fi
+
+if [[ "$FORCE" == "1" ]]; then
+    echo "Réinitialisation hard sur HEAD..."
+    git reset --hard HEAD
+    git clean -fd
+fi
+
+echo "Récupération du tag ${TARGET_TAG} depuis l'origine..."
+if ! git fetch origin "refs/tags/${TARGET_TAG}:refs/tags/${TARGET_TAG}"; then
+    echo "Le tag ${TARGET_TAG} est introuvable sur le remote origin." >&2
+    exit 3
+fi
+
+if ! git show-ref --tags --verify --quiet "refs/tags/${TARGET_TAG}"; then
+    echo "Tag ${TARGET_TAG} introuvable localement après fetch." >&2
+    exit 3
+fi
+
+echo "Bascule sur la release ${TARGET_TAG}..."
+git checkout -B "release/${TARGET_TAG}" "refs/tags/${TARGET_TAG}"
+
+echo "Statut git:"
+git status --short --branch
+
+echo "Exécution des migrations artisan..."
+if command -v php >/dev/null 2>&1; then
+    php artisan migrate --force || {
+        echo "Les migrations ont échoué." >&2
+        exit 4
+    }
+else
+    echo "php introuvable, migrations non exécutées."
+fi
+
+echo "✅ Mise à jour vers ${TARGET_TAG} terminée."
+
