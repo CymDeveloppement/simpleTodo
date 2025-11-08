@@ -83,12 +83,13 @@ class UpdateChecker
         Log::info('Requesting JSON from URL: ' . $url);
         Log::info('Context: ' . json_encode($context));
         $result = @file_get_contents($url, false, $context);
+        Log::info('Result: ' . $result);
         if ($result === false) {
             return null;
         }
 
-        $data = json_decode($result, true);
-        return is_array($data) ? $data : null;
+        $data = json_decode($result);
+        return (is_array($data) || is_object($data)) ? $data : null;
     }
 }
 
