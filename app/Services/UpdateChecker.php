@@ -55,7 +55,9 @@ class UpdateChecker
         $output = [];
         $exitCode = 0;
         exec($command, $output, $exitCode);
-
+        Log::info('Run script: ' . $command);
+        Log::info('Output: ' . implode("\n", $output));
+        Log::info('Exit code: ' . $exitCode);
         if ($exitCode !== 0) {
             return null;
         }
