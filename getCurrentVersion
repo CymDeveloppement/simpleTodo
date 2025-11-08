@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Aller à la racine du projet (emplacement du script)
+cd "$(dirname "$0")"
+
+if ! command -v git >/dev/null 2>&1; then
+    echo "git n'est pas disponible sur cette machine." >&2
+    exit 1
+fi
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Ce dossier n'est pas un dépôt git." >&2
+    exit 1
+fi
+
+if tag=$(git describe --tags --abbrev=0 2>/dev/null); then
+    printf '%s\n' "$tag"
+    exit 0
+fi
+
+if commit=$(git rev-parse --short HEAD 2>/dev/null); then
+    printf '%s\n' "$commit"
+    exit 0
+fi
+
+echo "Impossible de déterminer la version courante." >&2
+exit 1
+

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+REPO_DEFAULT="CymDeveloppement/simpleTodo"
+REPO="$REPO_DEFAULT"
+
+usage() {
+    cat <<'EOF'
+Usage: getUpdate [owner/repo]
+
+Sans argument, interroge CymDeveloppement/simpleTodo.
+Fournissez éventuellement un autre dépôt GitHub sous la forme owner/repo.
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+if [[ "${1:-}" =~ .+/.+ ]]; then
+    REPO="$1"
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+    echo "Erreur: curl est requis pour interroger l'API GitHub." >&2
+    exit 1
+fi
+
+GITHUB_API="https://api.github.com/repos/${REPO}"
+
+curl -sSL \
+  -H "Accept: application/vnd.github+json" \
+  -H "User-Agent: getUpdate-script" \
+  "${GITHUB_API}/releases/latest"
+
