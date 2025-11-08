@@ -81,12 +81,11 @@ class UpdateController extends Controller
 
     public function check(Request $request)
     {
-        $repo = $request->query('repo');
         /** @var \App\Services\UpdateChecker $checker */
         $checker = app(\App\Services\UpdateChecker::class);
 
         $local = $checker->getLocalVersion();
-        $remoteRelease = $checker->getRemoteRelease($repo);
+        $remoteRelease = $checker->getRemoteRelease();
 
         if (!$remoteRelease || empty($remoteRelease['tag_name'])) {
             return response()->json([
