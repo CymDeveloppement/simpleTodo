@@ -1,0 +1,166 @@
+body {
+    background: white;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.creator-only {
+    display: none;
+}
+
+.creator-only.show {
+    display: block !important;
+}
+
+.todo-container {
+    max-width: 600px;
+    margin: 50px auto;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #8fa4f5 0%, #b491e8 100%);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+    padding: 20px;
+}
+
+.todo-item {
+    padding: 15px;
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.2s;
+}
+
+.todo-item:hover {
+    background-color: #f8f9fa;
+}
+
+.todo-item.completed {
+    opacity: 0.6;
+}
+
+.todo-text.completed {
+    text-decoration: line-through;
+}
+
+.pseudo-badge {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    margin-left: 10px;
+}
+
+.btn-circle {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.comments-section {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e9ecef;
+}
+
+.comment-item {
+    padding: 8px;
+    margin-bottom: 5px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+.comment-pseudo {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 0.85rem;
+}
+
+.comment-form {
+    margin-top: 10px;
+}
+
+.btn-comment {
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+}
+
+.comment-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.btn-comment-wrapper {
+    position: relative;
+}
+
+.accordion-item {
+    border: 1px solid #dee2e6;
+    margin-top: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.accordion-button {
+    background-color: #f8f9fa;
+    padding: 12px 15px;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e7f3ff;
+    color: #0a58ca;
+}
+
+.accordion-body {
+    padding: 0 !important;
+}
+
+.accordion-button .badge {
+    margin-right: 8px;
+}
+
+#categoriesContainer {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#categoriesContainer .badge {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+}
+
+.todo-item .btn,
+.todo-item .btn-wrapper,
+.todo-item input {
+    pointer-events: auto;
+}
+
+.accordion-body {
+    pointer-events: none;
+}
+
+.accordion-body * {
+    pointer-events: auto;
+}

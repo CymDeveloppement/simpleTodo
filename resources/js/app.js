@@ -1,9 +1,72 @@
-// Configuration
-const API_BASE_URL = '';
+import '../css/app.css';
 
-// Récupérer le listId de l'URL (support réécriture d'URL et query string)
-const urlParams = new URLSearchParams(window.location.search);
-let listId = urlParams.get('list');
+import { API_BASE_URL, urlParams, getListId, setListId } from './state';
+import {
+    bootstrapAuthContext,
+    setupAuthenticatedFetch,
+    getStoredEmail,
+    setStoredEmail,
+    getCurrentUserEmail,
+    updateUserEmailBadge,
+    setAuthenticatedUser,
+    clearAuthenticatedUser,
+} from './modules/auth.js';
+import {
+    generateListId,
+    showListSelectionScreen,
+    loadMyListsFromAPI,
+    loadMyLists,
+    loadSelectedList,
+    createNewList,
+    requestAuthEmail,
+    resolveListIdFromPath,
+    getTokenFromUrl,
+} from './modules/listSelection.js';
+import {
+    setListId as setTodosListId,
+    loadTodos,
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    clearCompleted,
+    assignTodo,
+} from './modules/todos.js';
+
+Object.assign(window, {
+    loadSelectedList,
+    createNewList,
+    requestAuthEmail,
+    addTodo,
+    saveTitle,
+    cancelTitleEdit,
+    editTitle,
+    subscribe,
+    unsubscribe,
+    inviteCollaborator,
+    addCategory,
+    savePseudo,
+    savePseudoFromModal,
+    changeHeaderGradient,
+    saveAutoAssignOption,
+    deleteCategory,
+    clearCompleted,
+    confirmDeleteList,
+    runServerUpdate,
+    shareListUrl,
+    toggleTodo,
+    toggleComments,
+    assignTodo,
+    changeCategory,
+    changeDueDate,
+    deleteTodo,
+    addComment,
+    resendSubscriberLink,
+});
+
+bootstrapAuthContext();
+setupAuthenticatedFetch();
+
+let listId = getListId();
 
 // Si pas de listId dans query string, essayer depuis le chemin
 if (!listId) {
@@ -12,254 +75,13 @@ if (!listId) {
     const pathMatch = path.match(/^\/([^\/]+)$/);
     if (pathMatch && pathMatch[1] && pathMatch[1] !== 'index.html') {
         listId = pathMatch[1];
+        setListIdState(listId);
     }
 }
 
 // Si aucun listId dans l'URL, afficher l'écran de sélection
 if (!listId) {
     showListSelectionScreen();
-}
-
-// Fonction pour générer un ID de liste unique
-function generateListId() {
-    return 'list_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
-
-// Afficher l'écran de sélection/création de liste
-function showListSelectionScreen() {
-    document.body.innerHTML = `
-        <div class="container" style="max-width: 600px; margin: 100px auto;">
-            <div class="card">
-                <div class="card-header" style="background: linear-gradient(135deg, #8fa4f5 0%, #b491e8 100%); color: white;">
-                    <h2 class="mb-0"><i class="bi bi-check2-square"></i> SimpleTodo</h2>
-                </div>
-                <div class="card-body">
-                    <h5 class="mb-4">Choisir ou créer une liste</h5>
-                    
-                    <div class="mb-4">
-                        <label class="form-label">Mes listes</label>
-                        <select id="myLists" class="form-select mylists-select">
-                            <option value="">-- Sélectionner une liste --</option>
-                        </select>
-                        <button class="btn btn-primary w-100 mt-2" onclick="loadSelectedList()">
-                            <i class="bi bi-box-arrow-in-right"></i> Ouvrir cette liste
-                        </button>
-                    </div>
-                    
-                    <hr>
-                    
-                    <div>
-                        <label class="form-label">Créer une nouvelle liste</label>
-                        <input type="text" id="newListTitle" class="form-control mb-2" placeholder="Nom de la liste" maxlength="100">
-                        <input type="email" id="newListEmail" class="form-control mb-2" placeholder="Votre email (pour être le créateur)" maxlength="255">
-                        <small class="text-muted d-block mb-2">Votre email vous donnera les droits de créateur (modifier le thème, supprimer la liste)</small>
-                        <button class="btn btn-success w-100" onclick="createNewList()">
-                            <i class="bi bi-plus-circle"></i> Créer une nouvelle liste
-                        </button>
-                    </div>
-                    
-                    <hr>
-                    
-                    <div>
-                        <label class="form-label">Recevoir un email d'authentification</label>
-                        <input type="email" id="authEmail" class="form-control mb-2" placeholder="Votre email" maxlength="255">
-                        <small class="text-muted d-block mb-2">Un lien d'authentification vous sera envoyé par email</small>
-                        <button class="btn btn-info w-100" onclick="requestAuthEmail()">
-                            <i class="bi bi-envelope"></i> Envoyer l'email
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Récupérer les listes depuis localStorage
-    loadMyLists();
-}
-
-// Charger les listes depuis l'API
-async function loadMyListsFromAPI() {
-    const myLists = [];
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/mylists`);
-        
-        if (response.ok) {
-            const lists = await response.json();
-            lists.forEach(list => {
-                myLists.push({
-                    listId: list.id,
-                    title: list.title
-                });
-            });
-        } else {
-            console.log('Erreur lors du chargement des listes depuis l\'API:', response.status);
-        }
-    } catch (error) {
-        console.error('Erreur lors du chargement des listes depuis l\'API:', error);
-    }
-    
-    // Récupérer les listes depuis localStorage
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('simpleTodo_list_')) {
-            const listData = localStorage.getItem(key);
-            const parsedData = JSON.parse(listData);
-            if (parsedData && parsedData.listId) {
-                const existing = myLists.find(l => l.listId === parsedData.listId);
-                if (!existing) {
-                    myLists.push({
-                        listId: parsedData.listId,
-                        title: parsedData.title || parsedData.listId
-                    });
-                }
-            }
-        }
-    }
-    
-    // Remplir tous les select avec la classe mylists-select
-    const selects = document.querySelectorAll('.mylists-select');
-    selects.forEach(select => {
-        select.innerHTML = '<option value="">-- Sélectionner une liste --</option>';
-        
-        myLists.forEach(list => {
-            const option = document.createElement('option');
-            option.value = list.listId;
-            option.textContent = list.title;
-            select.appendChild(option);
-        });
-        
-        if (myLists.length === 0) {
-            select.innerHTML = '<option value="">Aucune liste disponible</option>';
-        }
-    });
-    
-    return myLists;
-}
-
-// Récupérer les listes depuis localStorage et serveur
-function loadMyLists() {
-    // Appeler directement loadMyListsFromAPI qui gère tout
-    loadMyListsFromAPI();
-}
-
-// Charger la liste sélectionnée
-async function loadSelectedList() {
-    const selectedListId = document.getElementById('myLists').value;
-    if (selectedListId) {
-        try {
-            // Vérifier si la liste existe
-            const response = await fetch(`${API_BASE_URL}/api/lists/${selectedListId}`);
-            if (!response.ok || response.status === 404) {
-                // La liste n'existe pas, la supprimer du localStorage
-                console.log('Liste non trouvée, suppression du localStorage');
-                
-                // Supprimer de simpleTodo_list
-                localStorage.removeItem(`simpleTodo_list_${selectedListId}`);
-                
-                // Supprimer de simpleTodo_token (chercher toutes les entrées)
-                for (let i = localStorage.length - 1; i >= 0; i--) {
-                    const key = localStorage.key(i);
-                    if (key && key.startsWith('simpleTodo_token_')) {
-                        const data = JSON.parse(localStorage.getItem(key));
-                        if (data && data.listId === selectedListId) {
-                            localStorage.removeItem(key);
-                        }
-                    }
-                }
-                
-                // Retourner à l'accueil
-                alert('Cette liste n\'existe plus. Retour à l\'accueil.');
-                window.location.href = '/';
-                return;
-            }
-            
-            // La liste existe, rediriger avec réécriture d'URL
-            window.location.href = `/${selectedListId}`;
-        } catch (error) {
-            console.error('Erreur lors de la vérification de la liste:', error);
-            alert('Erreur lors de la vérification de la liste.');
-        }
-    }
-}
-
-// Créer une nouvelle liste
-async function createNewList() {
-    const title = document.getElementById('newListTitle').value.trim();
-    if (!title) {
-        alert('Veuillez entrer un nom pour la liste');
-        return;
-    }
-    
-    const emailInput = document.getElementById('newListEmail').value.trim();
-    
-    // Essayer de récupérer l'email depuis localStorage ou le formulaire
-    const email = emailInput || getStoredEmail();
-    
-    if (!email) {
-        alert('Veuillez entrer votre email pour devenir le créateur de la liste');
-        document.getElementById('newListEmail').focus();
-        return;
-    }
-    
-    // Sauvegarder l'email dans localStorage si pas déjà présent
-    if (!getStoredEmail()) {
-        setStoredEmail(email);
-    }
-    
-    // Générer un nouvel ID de liste
-    const newListId = generateListId();
-    
-    try {
-        // Créer la liste via l'API
-        const response = await fetch(`${API_BASE_URL}/api/lists/${newListId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                title: title,
-                creator_email: email
-            })
-        });
-        
-        if (response.ok) {
-            // Rediriger vers la nouvelle liste avec réécriture d'URL
-            window.location.href = `/${newListId}`;
-        } else {
-            alert('Erreur lors de la création de la liste');
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-        alert('Erreur de connexion lors de la création de la liste');
-    }
-}
-
-// Demander un email d'authentification
-async function requestAuthEmail() {
-    const emailInput = document.getElementById('authEmail').value.trim();
-    
-    if (!emailInput || !emailInput.includes('@')) {
-        alert('Veuillez entrer une adresse email valide');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/request-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: emailInput })
-        });
-        
-        if (response.ok) {
-            alert('Un email avec vos liens d\'authentification a été envoyé !');
-            document.getElementById('authEmail').value = '';
-        } else {
-            const data = await response.json();
-            alert(data.message || 'Erreur lors de l\'envoi de l\'email');
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-        alert('Erreur de connexion');
-    }
 }
 
 // Récupérer le pseudo depuis localStorage
@@ -294,13 +116,20 @@ function updateUserInfo() {
     const pseudo = getPseudo();
     const email = getStoredEmail();
     
-    const currentPseudoElement = document.getElementById('currentPseudo');
-    if (currentPseudoElement && pseudo) {
-        currentPseudoElement.textContent = pseudo;
-        const userInfoElement = document.getElementById('userInfo');
-        if (userInfoElement) {
-            userInfoElement.style.display = 'flex';
-        }
+    const pseudoContainer = document.querySelector('.user-pseudo');
+    const pseudoTextElement = pseudoContainer ? pseudoContainer.querySelector('.user-pseudo-text') : null;
+
+    if (pseudoContainer && pseudoTextElement && pseudo) {
+        pseudoTextElement.textContent = pseudo;
+        pseudoContainer.style.display = 'inline-flex';
+    } else if (pseudoContainer) {
+        pseudoTextElement && (pseudoTextElement.textContent = '');
+        pseudoContainer.style.display = 'none';
+    }
+
+    const userInfoElement = document.getElementById('userInfo');
+    if (userInfoElement) {
+        userInfoElement.style.display = (pseudo || (window.isAuthenticated && getCurrentUserEmail())) ? 'flex' : 'none';
     }
     
     if (email) {
@@ -413,21 +242,10 @@ async function saveAutoAssignOption() {
 document.addEventListener('DOMContentLoaded', function() {
     const storedPseudo = localStorage.getItem('simpleTodo_pseudo');
     
-    // Récupérer le token depuis l'URL si présent (query string ou chemin)
-    let tokenFromUrl = urlParams.get('token');
+    // Récupérer le token depuis l'URL (query string ou chemin)
+    let tokenFromUrl = getTokenFromUrl();
+    listId = getListId();
     
-    // Si pas dans query string, essayer depuis le chemin
-    if (!tokenFromUrl) {
-        const path = window.location.pathname;
-        const pathMatch = path.match(/^\/([^\/]+)\/([^\/]+)$/);
-        if (pathMatch) {
-            // Format: /list123/token456
-            tokenFromUrl = pathMatch[2];
-            if (!listId) {
-                listId = pathMatch[1];
-            }
-        }
-    }
     if (tokenFromUrl && listId) {
         // Enregistrer la liste avec token dans localStorage
         const listData = {
@@ -472,19 +290,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
     
+    if (typeof window !== 'undefined' && window.isAuthenticated && window.userEmail) {
+        setStoredEmail(window.userEmail);
+    } else {
+        updateUserEmailBadge();
+    }
+
     getPseudo();
     loadListTitle();
     loadHeaderGradient();
     updateUserInfo();
+    updateUserEmailBadge();
     loadCategories();
     loadTodos();
     loadSubscribers();
 
     // Si authentifié, clic sur le pseudo → retour à l'accueil
-    const currentPseudoEl = document.getElementById('currentPseudo');
-    if (currentPseudoEl) {
-        currentPseudoEl.style.cursor = 'pointer';
-        currentPseudoEl.addEventListener('click', function() {
+    const pseudoClickable = document.querySelector('.user-pseudo');
+    if (pseudoClickable) {
+        pseudoClickable.style.cursor = 'pointer';
+        pseudoClickable.addEventListener('click', function() {
             const email = (window.userEmail || getStoredEmail() || '').trim();
             if (email) {
                 window.location.href = '/';
@@ -580,207 +405,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Charger les todos depuis l'API
-async function loadTodos() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/todos/${listId}`);
-        const todos = await response.json();
-        displayTodos(todos);
-        updateStats(todos);
-    } catch (error) {
-        console.error('Erreur lors du chargement des todos:', error);
-        const todoListEl = document.getElementById('todoList');
-        if (todoListEl) {
-            todoListEl.innerHTML = 
-                '<div class="alert alert-danger">Erreur de connexion à l\'API</div>';
-        }
-    }
-}
-
-// Afficher les todos
-function displayTodos(todos) {
-    const todoList = document.getElementById('todoList');
-    if (!todoList) return;
-    
-    if (todos.length === 0) {
-        todoList.innerHTML = `
-            <div class="text-center text-muted py-5">
-                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
-                <p class="mt-3">Aucune tâche pour le moment</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Séparer les tâches avec et sans catégorie
-    const todosWithCategory = todos.filter(t => t.category_id);
-    const todosWithoutCategory = todos.filter(t => !t.category_id);
-    
-    // Fonction de tri par date d'échéance (les plus proches en premier)
-    const sortByDueDate = (a, b) => {
-        if (!a.due_date && !b.due_date) return 0;
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return new Date(a.due_date) - new Date(b.due_date);
-    };
-    
-    // Trier les tâches sans catégorie par date d'échéance
-    todosWithoutCategory.sort(sortByDueDate);
-    
-    // Grouper les tâches par catégorie
-    const todosByCategory = {};
-    todosWithCategory.forEach(todo => {
-        if (!todosByCategory[todo.category_id]) {
-            todosByCategory[todo.category_id] = [];
-        }
-        todosByCategory[todo.category_id].push(todo);
-    });
-    
-    // Trier les tâches dans chaque catégorie par date d'échéance
-    Object.keys(todosByCategory).forEach(categoryId => {
-        todosByCategory[categoryId].sort(sortByDueDate);
-    });
-    
-    let html = '';
-    
-    // Afficher d'abord les tâches sans catégorie
-    if (todosWithoutCategory.length > 0) {
-        html += todosWithoutCategory.map(todo => renderTodoItem(todo)).join('');
-    }
-    
-    // Ensuite les catégories avec leurs tâches dans un accordion Bootstrap
-    // Afficher TOUTES les catégories, même celles sans tâche
-    if (categories.length > 0 || Object.keys(todosByCategory).length > 0) {
-        html += '<div class="accordion" id="categoryAccordion">';
-        
-        // Afficher toutes les catégories existantes
-        categories.forEach(category => {
-            const categoryTodos = todosByCategory[category.id] || [];
-            const accordionId = `collapse-${category.id}`;
-            const headingId = `heading-${category.id}`;
-            
-            html += `
-            <div class="accordion-item mt-2" data-category-id="${category.id}">
-                <h2 class="accordion-header" id="${headingId}">
-                    <button class="accordion-button collapsed" type="button" 
-                            data-bs-toggle="collapse" 
-                            data-bs-target="#${accordionId}" 
-                            aria-expanded="false" 
-                            aria-controls="${accordionId}">
-                        <span class="badge rounded-pill me-2" style="background-color: ${category.color}">${escapeHtml(category.name)}</span>
-                        <span class="text-muted small">(${categoryTodos.length} tâche${categoryTodos.length > 1 ? 's' : ''})</span>
-                    </button>
-                </h2>
-                <div id="${accordionId}" 
-                     class="accordion-collapse collapse" 
-                     aria-labelledby="${headingId}" 
-                     data-bs-parent="#categoryAccordion">
-                    <div class="accordion-body p-0">
-                        ${categoryTodos.length > 0 
-                            ? categoryTodos.map(todo => renderTodoItem(todo)).join('')
-                            : '<div class="text-center text-muted py-3 small">Aucune tâche dans cette catégorie</div>'
-                        }
-                    </div>
-                </div>
-            </div>
-            `;
-        });
-        
-        html += '</div>';
-    }
-    
-    todoList.innerHTML = html;
-    
-    // Charger le nombre de commentaires pour chaque tâche
-    todos.forEach(todo => {
-        updateCommentBadge(todo.id);
-    });
-}
-
-// Fonction pour rendre une tâche individuelle
-function renderTodoItem(todo) {
-    const assignedBadge = todo.assigned_to 
-        ? `<span class="badge bg-info ms-2"><i class="bi bi-person-check"></i> ${escapeHtml(todo.assigned_to)}</span>` 
-        : '';
-    
-    // Formater la date de création
-    const createdDate = formatCreatedDate(todo.created_at);
-    const creationInfo = `<small class="text-muted d-block mt-1" style="font-style: italic; font-size: 0.75rem;">Créé par ${escapeHtml(todo.pseudo)} ${createdDate}</small>`;
-    
-    // Badge pour la date d'échéance
-    let dueDateBadge = '';
-    if (todo.due_date) {
-        const dueDate = new Date(todo.due_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        dueDate.setHours(0, 0, 0, 0);
-        const diffTime = dueDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        let badgeClass = 'bg-secondary';
-        if (diffDays < 0) {
-            badgeClass = 'bg-danger';
-        } else if (diffDays === 0) {
-            badgeClass = 'bg-warning';
-        } else if (diffDays <= 3) {
-            badgeClass = 'bg-warning';
-        }
-        
-        const formattedDate = dueDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-        dueDateBadge = `<span class="badge ${badgeClass} ms-2" title="Échéance: ${dueDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}"><i class="bi bi-calendar-event"></i> ${formattedDate}</span>`;
-    }
-    
-    return `
-        <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" data-category="${todo.category_id || ''}">
-            <div class="d-flex align-items-center">
-                <button class="btn btn-sm ${todo.completed ? 'btn-success' : 'btn-outline-secondary'}" 
-                        onclick="event.stopPropagation(); toggleTodo(${todo.id})">
-                    <i class="bi ${todo.completed ? 'bi-check-lg' : 'bi-circle'}"></i>
-                </button>
-                <span class="todo-text ms-2 ${todo.completed ? 'completed' : ''}" style="flex: 1;">
-                    ${escapeHtml(todo.text)}
-                    ${dueDateBadge}
-                    ${assignedBadge}
-                </span>
-                
-                <!-- Bouton Commentaires (toujours visible) -->
-                <div class="btn-comment-wrapper me-2">
-                    <button class="btn btn-sm btn-outline-info btn-circle btn-comment" onclick="event.stopPropagation(); toggleComments(${todo.id})" title="Commentaires">
-                        <i class="bi bi-chat-left"></i>
-                    </button>
-                    <span id="comment-badge-${todo.id}" class="comment-badge" style="display: none;"></span>
-                </div>
-                
-                <!-- Dropdown pour les autres actions -->
-                <div class="dropdown me-2">
-                    <button class="btn btn-sm btn-outline-secondary btn-circle dropdown-toggle" type="button" id="dropdownMenuButton${todo.id}" data-bs-toggle="dropdown" aria-expanded="false" onclick="event.stopPropagation();">
-                        <i class="bi bi-three-dots"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton${todo.id}">
-                        ${!todo.assigned_to ? `<li><a class="dropdown-item" href="#" onclick="event.stopPropagation(); assignTodo(${todo.id}); return false;"><i class="bi bi-person-plus me-2"></i>Je m'en occupe</a></li>` : ''}
-                        <li><a class="dropdown-item" href="#" onclick="event.stopPropagation(); changeCategory(${todo.id}); return false;"><i class="bi bi-tag me-2"></i>Changer de catégorie</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="event.stopPropagation(); changeDueDate(${todo.id}); return false;"><i class="bi bi-calendar-plus me-2"></i>Modifier la date</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="#" onclick="event.stopPropagation(); deleteTodo(${todo.id}); return false;"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
-                    </ul>
-                </div>
-            </div>
-            ${creationInfo}
-            <div id="comments-${todo.id}" class="comments-section" style="display: none;">
-                <div id="comments-list-${todo.id}"></div>
-                <div class="comment-form">
-                    <div class="input-group input-group-sm">
-                        <input type="text" id="comment-input-${todo.id}" class="form-control" placeholder="Ajouter un commentaire..." maxlength="500">
-                        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); addComment(${todo.id})">
-                            <i class="bi bi-send"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
 // Échapper le HTML pour éviter les injections
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -802,205 +426,112 @@ function updateStats(todos) {
     if (clearBtnEl) clearBtnEl.style.display = completed > 0 ? 'block' : 'none';
 }
 
-// Ajouter un nouveau todo
-async function addTodo() {
-    const text = document.getElementById('todoInput').value.trim();
-    const pseudo = getPseudo();
-    
-    if (!text) {
-        alert('Veuillez entrer une tâche');
-        return;
-    }
-    
-    if (!pseudo) {
-        alert('Veuillez d\'abord entrer votre pseudo');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/todos/${listId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                text: text,
-                pseudo: pseudo,
-                category_id: null,
-                due_date: null
-            })
-        });
-        
-        if (response.ok) {
-            document.getElementById('todoInput').value = '';
-            loadTodos();
-        } else {
-            alert('Erreur lors de l\'ajout de la tâche');
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-        alert('Erreur de connexion');
-    }
-}
-
-// Toggle un todo (complété/non complété)
-async function toggleTodo(id) {
-    const todo = findTodoElement(id);
-    const currentState = todo.classList.contains('completed');
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                completed: !currentState
-            })
-        });
-        
-        if (response.ok) {
-            loadTodos();
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-    }
-}
-
-// Assigner une tâche à soi-même
-async function assignTodo(id) {
-    const pseudo = getPseudo();
-    
-    if (!pseudo) {
-        alert('Veuillez d\'abord entrer votre pseudo');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${id}/assign`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                pseudo: pseudo
-            })
-        });
-        
-        if (response.ok) {
-            loadTodos();
-        } else {
-            alert('Erreur lors de l\'assignation');
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-        alert('Erreur de connexion');
-    }
-}
-
 // Changer la date d'échéance d'une tâche
 async function changeDueDate(todoId) {
-    // Récupérer la date d'échéance actuelle depuis le DOM ou charger les todos
-    let todosData = [];
     try {
-        const response = await fetch(`${API_BASE_URL}/api/todos/${listId}`);
-        todosData = await response.json();
-    } catch (error) {
-        console.error('Erreur lors du chargement:', error);
-    }
-    
-    const todo = todosData.find(t => t.id == todoId);
-    const currentDueDate = todo?.due_date || '';
-    
-    // Créer une modal avec sélecteur de date
-    const modalHtml = `
-        <div class="modal fade" id="dueDateModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Modifier la date d'échéance</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <label class="form-label">Date d'échéance</label>
-                        <input type="date" id="dueDateInput" class="form-control" value="${currentDueDate}">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        <button type="button" class="btn btn-danger" onclick="removeDueDate(${todoId})">Supprimer la date</button>
-                        <button type="button" class="btn btn-primary" onclick="saveDueDateChange(${todoId})">Sauvegarder</button>
+        const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${todoId}`);
+        if (!response.ok) {
+            alert('Erreur lors de la récupération de la tâche');
+            return;
+        }
+        const todo = await response.json();
+        const currentDueDate = todo?.due_date || '';
+        const currentLabel = currentDueDate ? new Date(currentDueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'numeric', hour: 'numeric', minute: 'numeric' }) : 'Aucune date';
+
+        const container = document.createElement('div');
+        container.innerHTML = `
+            <div class="modal fade" id="dueDateModal" tabindex="-1" aria-labelledby="dueDateModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="dueDateModalLabel"><i class="bi bi-calendar-event"></i> Modifier la date d'échéance</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="newDueDate" class="form-label">Nouvelle date</label>
+                                <input type="date" class="form-control" id="newDueDate" value="${currentDueDate}" min="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                            <p class="text-muted">Date actuelle : ${currentLabel}</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-danger" id="removeDueDateBtn">Supprimer la date</button>
+                            <button type="button" class="btn btn-primary" id="saveDueDateBtn">Sauvegarder</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
-    
-    // Supprimer l'ancienne modal si elle existe
-    const existingModal = document.getElementById('dueDateModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Ajouter la nouvelle modal
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // Afficher la modal
-    const modal = new bootstrap.Modal(document.getElementById('dueDateModal'));
-    modal.show();
-    
-    // Définir les fonctions de sauvegarde dans le scope global
-    window.saveDueDateChange = async function(id) {
-        const dueDateInput = document.getElementById('dueDateInput');
-        const dueDate = dueDateInput.value || null;
-        
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    due_date: dueDate
-                })
-            });
-            
-            if (response.ok) {
-                modal.hide();
-                setTimeout(() => document.getElementById('dueDateModal').remove(), 300);
-                loadTodos();
-            } else {
+        `;
+
+        document.body.appendChild(container);
+
+        const modalElement = document.getElementById('dueDateModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+
+        const newDueDateInput = document.getElementById('newDueDate');
+        const saveButton = document.getElementById('saveDueDateBtn');
+        const removeButton = document.getElementById('removeDueDateBtn');
+
+        const closeModal = () => {
+            modal.hide();
+            setTimeout(() => container.remove(), 300);
+        };
+
+        saveButton.addEventListener('click', async () => {
+            try {
+                const dueDate = newDueDateInput.value;
+
+                const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${todoId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        due_date: dueDate
+                    })
+                });
+                
+                if (response.ok) {
+                    closeModal();
+                    loadTodos();
+                } else {
+                    alert('Erreur lors de la modification de la date d\'échéance');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
                 alert('Erreur lors de la modification de la date d\'échéance');
             }
-        } catch (error) {
-            console.error('Erreur:', error);
-            alert('Erreur lors de la modification de la date d\'échéance');
-        }
-    };
-    
-    window.removeDueDate = async function(id) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    due_date: null
-                })
-            });
-            
-            if (response.ok) {
-                modal.hide();
-                setTimeout(() => document.getElementById('dueDateModal').remove(), 300);
-                loadTodos();
-            } else {
+        });
+
+        removeButton.addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${todoId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        due_date: null
+                    })
+                });
+                
+                if (response.ok) {
+                    closeModal();
+                    loadTodos();
+                } else {
+                    alert('Erreur lors de la suppression de la date d\'échéance');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
                 alert('Erreur lors de la suppression de la date d\'échéance');
             }
-        } catch (error) {
-            console.error('Erreur:', error);
-            alert('Erreur lors de la suppression de la date d\'échéance');
-        }
-    };
+        });
+
+    } catch (error) {
+        console.error('Erreur lors de la récupération des informations de la tâche:', error);
+        alert('Erreur lors de la récupération des informations de la tâche');
+    }
 }
 
 // Changer la catégorie d'une tâche
@@ -1087,44 +618,6 @@ async function changeCategory(todoId) {
             alert('Erreur lors du changement de catégorie');
         }
     };
-}
-
-// Supprimer un todo
-async function deleteTodo(id) {
-    if (!confirm('Supprimer cette tâche ?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${id}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            loadTodos();
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-    }
-}
-
-// Supprimer les todos terminés
-async function clearCompleted() {
-    if (!confirm('Supprimer toutes les tâches terminées ?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/todos/${listId}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            loadTodos();
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-    }
 }
 
 // Trouver l'élément todo
@@ -1471,12 +964,6 @@ async function saveTitle() {
     }
 }
 
-// Fonctions pour gérer l'email
-function getStoredEmail() {
-    // Récupérer uniquement le stockage global
-    return localStorage.getItem('simpleTodo_email');
-}
-
 // Fonction pour partager l'URL de la liste (sans token)
 function shareListUrl() {
     if (!listId) {
@@ -1520,11 +1007,6 @@ function fallbackCopyToClipboard(text) {
     }
     
     document.body.removeChild(textArea);
-}
-
-function setStoredEmail(email) {
-    // Sauvegarder uniquement globalement
-    localStorage.setItem('simpleTodo_email', email);
 }
 
 // Fonction simplifiée pour gérer l'affichage de l'abonnement

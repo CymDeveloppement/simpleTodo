@@ -4,146 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SimpleTodo - Liste de tâches</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta
+        name="app:auth"
+        data-authenticated="{{ Auth::check() ? '1' : '0' }}"
+        data-email="{{ Auth::user()?->email }}"
+        data-name="{{ Auth::user()?->name }}"
+        data-session-email="{{ $email }}"
+    >
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        body {
-            background: white;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .creator-only {
-            display: none;
-        }
-        .creator-only.show {
-            display: block !important;
-        }
-        .todo-container {
-            max-width: 600px;
-            margin: 50px auto;
-        }
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-        .card-header {
-            background: linear-gradient(135deg, #8fa4f5 0%, #b491e8 100%);
-            color: white;
-            border-radius: 15px 15px 0 0 !important;
-            padding: 20px;
-        }
-        .todo-item {
-            padding: 15px;
-            border-bottom: 1px solid #e9ecef;
-            transition: background-color 0.2s;
-        }
-        .todo-item:hover {
-            background-color: #f8f9fa;
-        }
-        .todo-item.completed {
-            opacity: 0.6;
-        }
-        .todo-text.completed {
-            text-decoration: line-through;
-        }
-        .pseudo-badge {
-            font-size: 0.75rem;
-            padding: 3px 8px;
-            margin-left: 10px;
-        }
-        .btn-circle {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .input-group {
-            margin-bottom: 20px;
-        }
-        .comments-section {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #e9ecef;
-        }
-        .comment-item {
-            padding: 8px;
-            margin-bottom: 5px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            font-size: 0.9rem;
-        }
-        .comment-pseudo {
-            font-weight: bold;
-            color: #667eea;
-            font-size: 0.85rem;
-        }
-        .comment-form {
-            margin-top: 10px;
-        }
-        .btn-comment {
-            font-size: 0.85rem;
-            margin-right: 0.5rem;
-        }
-        .comment-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: #dc3545;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-        .btn-comment-wrapper {
-            position: relative;
-        }
-        .accordion-item {
-            border: 1px solid #dee2e6;
-            margin-top: 10px;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .accordion-button {
-            background-color: #f8f9fa;
-            padding: 12px 15px;
-        }
-        .accordion-button:not(.collapsed) {
-            background-color: #e7f3ff;
-            color: #0a58ca;
-        }
-        .accordion-body {
-            padding: 0 !important;
-        }
-        .accordion-button .badge {
-            margin-right: 8px;
-        }
-        #categoriesContainer {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        #categoriesContainer .badge {
-            font-size: 0.75rem;
-            padding: 4px 8px;
-        }
-        .todo-item .btn, .todo-item .btn-wrapper, .todo-item input {
-            pointer-events: auto;
-        }
-        .accordion-body {
-            pointer-events: none;
-        }
-        .accordion-body * {
-            pointer-events: auto;
-        }
-        /* Masquer les sections créateur pour les non-créateurs */
-    </style>
+    @vite('resources/js/app.js')
 </head>
 <body>
     <div class="container todo-container">
@@ -152,11 +23,10 @@
                 <div class="d-flex align-items-center mb-3">
                     <h4 class="mb-0"><i class="bi bi-check2-square"></i> <span id="listTitle">SimpleTodo</span></h4>
                     <div class="d-flex align-items-center gap-2 ms-auto">
-                        @if(isset($user) && $user)
-                            <span class="text-white me-2">
-                                <i class="bi bi-person-circle"></i> {{ $user->email }}
-                            </span>
-                        @endif
+                        <span class="text-white me-2 user-email" style="display: none;">
+                            <i class="bi bi-person-circle"></i>
+                            <span class="user-email-text"></span>
+                        </span>
                         <button class="btn btn-sm btn-light creator-only" onclick="editTitle()">
                             <i class="bi bi-pencil"></i> Modifier
                         </button>
@@ -179,7 +49,7 @@
                 
                 <!-- Pseudo et Email actuels -->
                 <div id="userInfo" class="d-flex align-items-center mb-2" style="display: none;">
-                    <span class="text-white"><i class="bi bi-person-circle"></i> <span id="currentPseudo"></span></span>
+                    <span class="text-white user-pseudo" style="display: none;"><i class="bi bi-person-circle"></i> <span class="user-pseudo-text"></span></span>
                     <span class="text-white ms-3" id="emailBadge" style="display: none;"><i class="bi bi-envelope-check"></i> Notifications</span>
                     <button class="btn btn-sm btn-light ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#userSettings">
                         <i class="bi bi-gear"></i>
@@ -487,13 +357,5 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // Injecter les données PHP dans le JavaScript
-        window.userEmail = @json($email);
-        window.csrfToken = '{{ csrf_token() }}';
-    </script>
-    
-    <script src="/js/app.js"></script>
 </body>
 </html>
