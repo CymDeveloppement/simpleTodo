@@ -11,6 +11,7 @@ class UpdateChecker
     public function __construct(?string $localScript = null, ?string $remoteScript = null, ?string $remote = null)
     {
         $basePath = base_path();
+        Log::info('Base path: ' . $basePath);
         $this->localVersionScript = $localScript ?? $basePath . '/getCurrentVersion';
         $this->remoteVersionScript = $remoteScript ?? $basePath . '/getNewVersion';
         $this->defaultRemote = $remote ?? env('ADMIN_REPOSITORY', 'CymDeveloppement/simpleTodo');
