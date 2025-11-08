@@ -19,6 +19,7 @@ class TodoController extends Controller
     public function index($listId)
     {
         $todos = Todo::where('list_id', $listId)
+            ->with('category')
             ->orderBy('created_at', 'asc')
             ->get();
         
@@ -60,7 +61,7 @@ class TodoController extends Controller
         // Envoyer des notifications aux abonnés
         $this->sendNewTodoNotification($todo);
 
-        return response()->json($todo, 201);
+        return response()->json($todo->load('category'), 201);
     }
     
     private function sendNewTodoNotification($todo)
@@ -122,7 +123,7 @@ class TodoController extends Controller
 
         $todo->save();
 
-        return response()->json($todo);
+        return response()->json($todo->load('category'));
     }
     
     private function sendCompletedTodoNotification($todo)
@@ -163,7 +164,7 @@ class TodoController extends Controller
         $todo->assigned_to = $request->input('pseudo');
         $todo->save();
 
-        return response()->json($todo);
+        return response()->json($todo->load('category'));
     }
 
     public function destroy($listId, $id)

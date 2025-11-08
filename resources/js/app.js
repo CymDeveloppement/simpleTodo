@@ -67,6 +67,7 @@ bootstrapAuthContext();
 setupAuthenticatedFetch();
 
 let listId = getListId();
+setTodosListId(listId);
 
 // Si pas de listId dans query string, essayer depuis le chemin
 if (!listId) {
@@ -75,7 +76,8 @@ if (!listId) {
     const pathMatch = path.match(/^\/([^\/]+)$/);
     if (pathMatch && pathMatch[1] && pathMatch[1] !== 'index.html') {
         listId = pathMatch[1];
-        setListIdState(listId);
+        setListId(listId);
+        setTodosListId(listId);
     }
 }
 
@@ -245,6 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Récupérer le token depuis l'URL (query string ou chemin)
     let tokenFromUrl = getTokenFromUrl();
     listId = getListId();
+    setTodosListId(listId);
     
     if (tokenFromUrl && listId) {
         // Enregistrer la liste avec token dans localStorage
@@ -428,110 +431,110 @@ function updateStats(todos) {
 
 // Changer la date d'échéance d'une tâche
 async function changeDueDate(todoId) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${todoId}`);
-        if (!response.ok) {
-            alert('Erreur lors de la récupération de la tâche');
-            return;
-        }
-        const todo = await response.json();
-        const currentDueDate = todo?.due_date || '';
-        const currentLabel = currentDueDate ? new Date(currentDueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'numeric', hour: 'numeric', minute: 'numeric' }) : 'Aucune date';
+    const todoElement = document.querySelector(`[data-id="${todoId}"]`);
+    if (!todoElement) {
+        alert('Impossible de récupérer la tâche ciblée. Veuillez recharger la page.');
+        return;
+    }
 
-        const container = document.createElement('div');
-        container.innerHTML = `
-            <div class="modal fade" id="dueDateModal" tabindex="-1" aria-labelledby="dueDateModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="dueDateModalLabel"><i class="bi bi-calendar-event"></i> Modifier la date d'échéance</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    const currentDueDate = todoElement.getAttribute('data-due-date') || '';
+    const currentLabel = currentDueDate
+        ? new Date(currentDueDate).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'numeric',
+            year: 'numeric',
+        })
+        : 'Aucune date';
+
+    const container = document.createElement('div');
+    container.innerHTML = `
+        <div class="modal fade" id="dueDateModal" tabindex="-1" aria-labelledby="dueDateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="dueDateModalLabel"><i class="bi bi-calendar-event"></i> Modifier la date d'échéance</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="newDueDate" class="form-label">Nouvelle date</label>
+                            <input type="date" class="form-control" id="newDueDate" value="${currentDueDate}" min="${new Date().toISOString().split('T')[0]}">
                         </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="newDueDate" class="form-label">Nouvelle date</label>
-                                <input type="date" class="form-control" id="newDueDate" value="${currentDueDate}" min="${new Date().toISOString().split('T')[0]}">
-                            </div>
-                            <p class="text-muted">Date actuelle : ${currentLabel}</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-danger" id="removeDueDateBtn">Supprimer la date</button>
-                            <button type="button" class="btn btn-primary" id="saveDueDateBtn">Sauvegarder</button>
-                        </div>
+                        <p class="text-muted">Date actuelle : ${currentLabel}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" id="removeDueDateBtn">Supprimer la date</button>
+                        <button type="button" class="btn btn-primary" id="saveDueDateBtn">Sauvegarder</button>
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
-        document.body.appendChild(container);
+    document.body.appendChild(container);
 
-        const modalElement = document.getElementById('dueDateModal');
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
+    const modalElement = document.getElementById('dueDateModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
 
-        const newDueDateInput = document.getElementById('newDueDate');
-        const saveButton = document.getElementById('saveDueDateBtn');
-        const removeButton = document.getElementById('removeDueDateBtn');
+    const newDueDateInput = document.getElementById('newDueDate');
+    const saveButton = document.getElementById('saveDueDateBtn');
+    const removeButton = document.getElementById('removeDueDateBtn');
 
-        const closeModal = () => {
-            modal.hide();
-            setTimeout(() => container.remove(), 300);
-        };
+    const closeModal = () => {
+        modal.hide();
+        setTimeout(() => container.remove(), 300);
+    };
 
-        saveButton.addEventListener('click', async () => {
-            try {
-                const dueDate = newDueDateInput.value;
+    saveButton.addEventListener('click', async () => {
+        try {
+            const dueDate = newDueDateInput.value;
 
-                const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${todoId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        due_date: dueDate
-                    })
-                });
-                
-                if (response.ok) {
-                    closeModal();
-                    loadTodos();
-                } else {
-                    alert('Erreur lors de la modification de la date d\'échéance');
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
+            const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${todoId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    due_date: dueDate
+                })
+            });
+            
+            if (response.ok) {
+                closeModal();
+                loadTodos();
+            } else {
                 alert('Erreur lors de la modification de la date d\'échéance');
             }
-        });
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la modification de la date d\'échéance');
+        }
+    });
 
-        removeButton.addEventListener('click', async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${todoId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        due_date: null
-                    })
-                });
-                
-                if (response.ok) {
-                    closeModal();
-                    loadTodos();
-                } else {
-                    alert('Erreur lors de la suppression de la date d\'échéance');
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
+    removeButton.addEventListener('click', async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${todoId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    due_date: null
+                })
+            });
+            
+            if (response.ok) {
+                closeModal();
+                loadTodos();
+            } else {
                 alert('Erreur lors de la suppression de la date d\'échéance');
             }
-        });
-
-    } catch (error) {
-        console.error('Erreur lors de la récupération des informations de la tâche:', error);
-        alert('Erreur lors de la récupération des informations de la tâche');
-    }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la suppression de la date d\'échéance');
+        }
+    });
 }
 
 // Changer la catégorie d'une tâche
@@ -657,7 +660,11 @@ if (inviteEmailInput) {
 // Fonctions pour les commentaires
 async function toggleComments(todoId) {
     const commentsSection = document.getElementById(`comments-${todoId}`);
-    if (commentsSection.style.display === 'none') {
+    if (!commentsSection) {
+        return;
+    }
+
+    if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
         commentsSection.style.display = 'block';
         loadComments(todoId);
     } else {
@@ -680,14 +687,15 @@ async function updateCommentBadge(todoId) {
         const response = await fetch(`${API_BASE_URL}/api/comments/${listId}/${todoId}`);
         const comments = await response.json();
         const badge = document.getElementById(`comment-badge-${todoId}`);
-        
-        if (badge) {
-            if (comments.length > 0) {
-                badge.textContent = comments.length;
-                badge.style.display = 'flex';
-            } else {
-                badge.style.display = 'none';
-            }
+        if (!badge) {
+            return;
+        }
+
+        if (comments.length > 0) {
+            badge.textContent = comments.length;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
         }
     } catch (error) {
         console.error('Erreur lors du chargement du badge:', error);

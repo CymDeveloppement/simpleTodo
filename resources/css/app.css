@@ -120,7 +120,11 @@ body {
     border: 1px solid #dee2e6;
     margin-top: 10px;
     border-radius: 8px;
-    overflow: hidden;
+    overflow: visible;
+}
+
+.accordion-item .dropdown-menu {
+    z-index: 1100;
 }
 
 .accordion-button {

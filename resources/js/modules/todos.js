@@ -24,7 +24,86 @@ function displayTodos(todos) {
         return;
     }
 
-    const html = todos.map(todo => renderTodo(todo)).join('');
+    if (!todos.length) {
+        listContainer.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <p class="mt-3">Aucune tâche pour le moment</p>
+            </div>
+        `;
+        return;
+    }
+
+    const grouped = new Map();
+    const uncategorized = [];
+
+    todos.forEach(todo => {
+        if (todo.category) {
+            const categoryId = `cat_${todo.category.id}`;
+            if (!grouped.has(categoryId)) {
+                grouped.set(categoryId, {
+                    name: todo.category.name,
+                    color: todo.category.color,
+                    todos: [],
+                });
+            }
+            grouped.get(categoryId).todos.push(todo);
+        } else {
+            uncategorized.push(todo);
+        }
+    });
+
+    let html = '';
+
+    if (uncategorized.length) {
+        html += `
+            <div class="mb-3">
+                ${uncategorized.map(todo => renderTodo(todo)).join('')}
+            </div>
+        `;
+    }
+
+    if (grouped.size) {
+        html += '<div class="accordion" id="todoAccordion">';
+
+        const categoriesArray = Array.from(grouped.entries()).sort((a, b) => {
+            const catA = a[1].name.toLowerCase();
+            const catB = b[1].name.toLowerCase();
+            return catA.localeCompare(catB, 'fr');
+        });
+
+        categoriesArray.forEach(([key, data], index) => {
+            const collapseId = `collapse_${key}`;
+            const headingId = `heading_${key}`;
+            const isOpen = index === 0 && !uncategorized.length;
+            const badgeColor = data.color || '#6c757d';
+            const tasksHtml = data.todos.map(todo => renderTodo(todo)).join('');
+
+            html += `
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="${headingId}">
+                        <button class="accordion-button ${isOpen ? '' : 'collapsed'}" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#${collapseId}"
+                            aria-expanded="${isOpen ? 'true' : 'false'}" aria-controls="${collapseId}">
+                            <span class="badge rounded-pill me-2" style="background-color: ${badgeColor}; color: #fff;">
+                                ${escapeHtml(data.name)}
+                            </span>
+                            <span class="ms-1 text-muted">${data.todos.length} tâche${data.todos.length > 1 ? 's' : ''}</span>
+                        </button>
+                    </h2>
+                    <div id="${collapseId}" class="accordion-collapse collapse ${isOpen ? 'show' : ''}"
+                        aria-labelledby="${headingId}" data-bs-parent="#todoAccordion">
+                        <div class="accordion-body p-0">
+                            ${tasksHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+    }
+
     listContainer.innerHTML = html;
 }
 
@@ -33,22 +112,36 @@ function renderTodo(todo) {
     const dueDateLabel = todo.due_date ? formatDate(todo.due_date) : 'Aucune date';
     const toggleIcon = todo.completed ? 'bi-arrow-counterclockwise' : 'bi-check-lg';
     const toggleTitle = todo.completed ? 'Marquer comme non terminé' : 'Marquer comme terminé';
+    const toggleButtonClass = todo.completed
+        ? 'btn btn-sm btn-outline-success btn-circle flex-shrink-0'
+        : 'btn btn-sm btn-outline-primary btn-circle flex-shrink-0';
+    const creatorBadge = todo.pseudo
+        ? `<span class="badge bg-light text-dark pseudo-badge ms-2"><i class="bi bi-person-fill"></i> ${escapeHtml(todo.pseudo)}</span>`
+        : '';
+    const assignedBadge = todo.assigned_to
+        ? `<span class="badge bg-info text-dark pseudo-badge ms-2"><i class="bi bi-person-check"></i> ${escapeHtml(todo.assigned_to)}</span>`
+        : '';
+    const categoryBadge = todo.category
+        ? `<span class="badge" style="background-color:${todo.category.color};">${escapeHtml(todo.category.name)}</span>`
+        : '';
 
     return `
-        <div class="todo-item ${todo.completed ? 'completed' : ''}">
+        <div class="todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo.id}" data-category="${todo.category ? todo.category.id : ''}" data-assigned="${todo.assigned_to ? escapeHtml(todo.assigned_to) : ''}" data-due-date="${todo.due_date || ''}" data-completed="${todo.completed ? '1' : '0'}">
             <div class="d-flex align-items-start gap-2">
-                <button class="btn btn-sm btn-outline-success btn-circle flex-shrink-0" title="${toggleTitle}"
+                <button class="${toggleButtonClass}" title="${toggleTitle}"
                     onclick="event.stopPropagation(); toggleTodo(${todo.id})">
                     <i class="bi ${toggleIcon}"></i>
                 </button>
                 <div class="flex-grow-1">
                     <div>
                         <span class="todo-text ${todo.completed ? 'completed' : ''}">${escapeHtml(todo.text)}</span>
-                        ${todo.completed ? '<span class="badge bg-success ms-2">Terminé</span>' : ''}
+                        ${todo.completed ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle"></i> Terminé</span>' : ''}
+                        ${categoryBadge}
+                        ${creatorBadge}
+                        ${assignedBadge}
                     </div>
                     <div class="text-muted" style="font-size: 0.85rem;">
                         Ajouté par <strong>${escapeHtml(todo.pseudo || 'Anonyme')}</strong>
-                        ${todo.assigned_to ? ` • Assigné à ${escapeHtml(todo.assigned_to)}` : ''}
                         • ${dueDateLabel}
                     </div>
                 </div>
@@ -56,7 +149,7 @@ function renderTodo(todo) {
                     <button class="btn btn-sm btn-outline-secondary btn-circle" title="Afficher les commentaires"
                         onclick="event.stopPropagation(); toggleComments(${todo.id})">
                         <i class="bi bi-chat-dots"></i>
-                        ${commentCount > 0 ? `<span class="comment-badge">${commentCount}</span>` : ''}
+                        <span class="comment-badge" id="comment-badge-${todo.id}" ${commentCount > 0 ? '' : 'style="display:none;"'}>${commentCount}</span>
                     </button>
                     <div class="dropdown">
                         <button class="btn btn-sm btn-outline-secondary btn-circle dropdown-toggle" type="button"
@@ -73,7 +166,15 @@ function renderTodo(todo) {
                     </div>
                 </div>
             </div>
-            <div class="comments-section" id="commentsContainer${todo.id}" style="display: none;"></div>
+            <div class="comments-section" id="comments-${todo.id}" style="display: none;">
+                <div class="comment-list" id="comments-list-${todo.id}"></div>
+                <div class="comment-form input-group mt-2">
+                    <input type="text" class="form-control" id="comment-input-${todo.id}" placeholder="Ajouter un commentaire...">
+                    <button class="btn btn-outline-primary" type="button" onclick="addComment(${todo.id})">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -155,6 +256,10 @@ async function addTodo() {
 }
 
 async function toggleTodo(id) {
+    const todoElement = document.querySelector(`.todo-item[data-id="${id}"]`);
+    const currentCompleted = todoElement?.getAttribute('data-completed') === '1';
+    const newCompleted = !currentCompleted;
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${id}`, {
             method: 'PUT',
@@ -162,12 +267,16 @@ async function toggleTodo(id) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                toggle: true,
+                completed: newCompleted,
             }),
         });
 
         if (response.ok) {
             loadTodos();
+        } else if (response.status === 422) {
+            const error = await response.json().catch(() => null);
+            console.error('Validation toggle todo:', error);
+            alert(error?.message || 'Validation impossible pour cette tâche');
         } else {
             alert('Erreur lors du changement d\'état de la tâche');
         }
@@ -220,23 +329,70 @@ async function clearCompleted() {
 }
 
 async function assignTodo(id) {
+    const storedPseudo = localStorage.getItem('simpleTodo_pseudo') || '';
+    const email = (typeof window !== 'undefined' && window.userEmail)
+        ? window.userEmail
+        : getCurrentUserEmail();
+
+    if (!email) {
+        alert("Impossible d'assigner la tâche : votre adresse email est introuvable. Veuillez vous reconnecter.");
+        return;
+    }
+
+    let pseudo = storedPseudo;
+    if (!pseudo && window.isAuthenticated) {
+        pseudo = email.split('@')[0];
+        localStorage.setItem('simpleTodo_pseudo', pseudo);
+    }
+
+    if (!pseudo) {
+        alert('Veuillez enregistrer votre pseudo avant de vous assigner une tâche.');
+        return;
+    }
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/todos/${listId}/${id}/assign`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-User-Email': email,
+                'X-User-Pseudo': pseudo,
             },
+            body: JSON.stringify({
+                pseudo,
+            }),
         });
 
         if (response.ok) {
             loadTodos();
+        } else if (response.status === 422) {
+            const data = await response.json().catch(() => null);
+            console.error('Validation assign todo:', data);
+            alert((data && data.message) || "Impossible d'assigner la tâche (422)");
         } else {
-            alert('Erreur lors de l\'assignation de la tâche');
+            alert("Erreur lors de l'assignation de la tâche");
         }
     } catch (error) {
         console.error('Erreur assign todo:', error);
         alert('Erreur de connexion');
     }
+}
+
+async function changeDueDate(todoId) {
+    const todoElement = document.querySelector(`[data-id="${todoId}"]`);
+    if (!todoElement) {
+        alert('Impossible de récupérer la tâche ciblée. Veuillez recharger la page.');
+        return;
+    }
+
+    const currentDueDate = todoElement.getAttribute('data-due-date') || '';
+    const currentLabel = currentDueDate
+        ? new Date(currentDueDate).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'numeric',
+            year: 'numeric',
+        })
+        : 'Aucune date';
 }
 
 export {
