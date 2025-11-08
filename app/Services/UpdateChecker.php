@@ -44,6 +44,7 @@ class UpdateChecker
         }
 
         $release = $this->requestJson("{$this->apiBase}/{$repoName}/releases/latest");
+        Log::info('Release: ' . json_encode($release));
         if (!$release || isset($release['message'])) {
             return null;
         }
