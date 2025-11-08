@@ -5,13 +5,15 @@ namespace App\Services;
 class UpdateChecker
 {
     protected string $getCurrentScript;
-    protected string $getUpdateScript;
+    protected string $repository;
+    protected string $apiBase;
 
-    public function __construct(?string $getCurrentPath = null, ?string $getUpdatePath = null)
+    public function __construct(?string $getCurrentPath = null, ?string $repository = null)
     {
         $basePath = base_path();
         $this->getCurrentScript = $getCurrentPath ?? $basePath . '/getCurrentVersion';
-        $this->getUpdateScript = $getUpdatePath ?? $basePath . '/getUpdate';
+        $this->repository = $repository ?? env('ADMIN_REPOSITORY', 'CymDeveloppement/simpleTodo');
+        $this->apiBase = 'https://api.github.com/repos';
     }
 
     public function hasNewerVersion(?string $repo = null): bool
@@ -28,52 +30,25 @@ class UpdateChecker
 
     public function getRemoteVersion(?string $repo = null): ?string
     {
-        if (!is_executable($this->getUpdateScript)) {
-            return null;
-        }
-
-        $command = escapeshellcmd($this->getUpdateScript);
-        if ($repo) {
-            $command .= ' ' . escapeshellarg($repo);
-        }
-
-        $raw = shell_exec($command);
-        if ($raw === null) {
-            return null;
-        }
-
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded) || isset($decoded['message'])) {
-            return null;
-        }
-
-        return $decoded['tag_name'] ?? null;
+        $release = $this->getRemoteRelease($repo);
+        return $release['tag_name'] ?? null;
     }
 
     public function getRemoteRelease(?string $repo = null): ?array
     {
-        if (!is_executable($this->getUpdateScript)) {
+        $repoName = $repo ?? $this->repository;
+        if (!$repoName) {
             return null;
         }
 
-        $command = escapeshellcmd($this->getUpdateScript);
-        if ($repo) {
-            $command .= ' ' . escapeshellarg($repo);
-        }
-
-        $raw = shell_exec($command);
-        if ($raw === null) {
-            return null;
-        }
-
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded) || isset($decoded['message'])) {
+        $release = $this->requestJson("{$this->apiBase}/{$repoName}/releases/latest");
+        if (!$release || isset($release['message'])) {
             return null;
         }
 
         return [
-            'tag_name' => $decoded['tag_name'] ?? null,
-            'name' => $decoded['name'] ?? null,
+            'tag_name' => $release['tag_name'] ?? null,
+            'name' => $release['name'] ?? null,
         ];
     }
 
@@ -90,6 +65,25 @@ class UpdateChecker
 
         $trimmed = trim($output);
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    protected function requestJson(string $url): ?array
+    {
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'header' => "Accept: application/vnd.github+json\r\nUser-Agent: simpletodo-update-checker\r\n",
+                'timeout' => 10,
+            ],
+        ]);
+
+        $result = @file_get_contents($url, false, $context);
+        if ($result === false) {
+            return null;
+        }
+
+        $data = json_decode($result, true);
+        return is_array($data) ? $data : null;
     }
 }
 
