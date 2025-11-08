@@ -46,7 +46,7 @@ class UpdateChecker
     protected function runScript(string $script, array $arguments = []): ?string
     {
         if (!is_executable($script)) {
-            return null;
+            //return null;
         }
 
         $command = escapeshellarg($script);
