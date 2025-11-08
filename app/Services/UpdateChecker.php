@@ -69,7 +69,7 @@ class UpdateChecker
         return $trimmed === '' ? null : $trimmed;
     }
 
-    protected function requestJson(string $url): ?array
+    protected function requestJson(string $url): mixed
     {
         $context = stream_context_create([
             'http' => [
