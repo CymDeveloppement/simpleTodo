@@ -106,5 +106,29 @@ else
     echo "php introuvable, migrations non exécutées."
 fi
 
+VERSION_SCRIPT="${PROJECT_ROOT}/update-bin/getCurrentVersion"
+ENV_FILE="${PROJECT_ROOT}/.env"
+
+if [[ -x "$VERSION_SCRIPT" ]]; then
+    APP_VERSION="$("$VERSION_SCRIPT" 2>/dev/null || true)"
+    if [[ -n "$APP_VERSION" ]]; then
+        if [[ ! -f "$ENV_FILE" ]]; then
+            touch "$ENV_FILE" || true
+        fi
+
+        if [[ -f "$ENV_FILE" ]]; then
+            if grep -q '^APP_VERSION=' "$ENV_FILE"; then
+                TMP_FILE="$(mktemp "${ENV_FILE}.XXXX" 2>/dev/null || echo "${ENV_FILE}.tmp")"
+                sed "s/^APP_VERSION=.*/APP_VERSION=${APP_VERSION}/" "$ENV_FILE" > "$TMP_FILE" && mv "$TMP_FILE" "$ENV_FILE"
+            else
+                printf '\nAPP_VERSION=%s\n' "$APP_VERSION" >> "$ENV_FILE"
+            fi
+            echo "APP_VERSION mis à jour dans .env (${APP_VERSION})."
+        else
+            echo "Impossible de créer le fichier .env pour mettre à jour APP_VERSION." >&2
+        fi
+    fi
+fi
+
 echo "✅ Mise à jour vers ${TARGET_TAG} terminée."
 
