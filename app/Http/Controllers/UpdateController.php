@@ -32,7 +32,7 @@ class UpdateController extends Controller
         // Déterminer le chemin du script update.sh à la racine de l'app Lumen (dossier /todo)
         // Utiliser la base du projet plutôt que le dossier app/
         $projectRoot = app()->basePath(); // ex: /home/.../todo
-        $scriptPath = $projectRoot . '/update.sh';
+        $scriptPath = $projectRoot . '/update-bin/update.sh';
 
         if (!file_exists($scriptPath)) {
             return response()->json([
@@ -51,7 +51,7 @@ class UpdateController extends Controller
             2 => ['pipe', 'w'], // stderr
         ];
 
-        $cmd = 'bash update.sh';
+        $cmd = 'bash update-bin/update.sh';
         if ($request->boolean('force')) {
             $cmd .= ' --force';
         }

@@ -2,8 +2,10 @@
 
 set -euo pipefail
 
-# Always run from the script's directory (project root for Lumen app)
-cd "$(dirname "$0")"
+# Toujours exécuter depuis la racine du projet
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 echo "=== SimpleTodo Update ==="
 echo "Directory: $(pwd)"

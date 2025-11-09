@@ -2,8 +2,10 @@
 
 set -euo pipefail
 
-# Aller à la racine du projet (emplacement du script)
-cd "$(dirname "$0")"
+# Aller à la racine du projet (dossier parent de update-bin)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 echo "=== Installation SimpleTodo ==="
 echo "Répertoire: $(pwd)"
@@ -29,6 +31,10 @@ fi
 
 echo "Utilisation de PHP CLI : ${PHP_BIN}"
 
+HOME_DIR="${HOME:-$PROJECT_ROOT}"
+COMPOSER_HOME_DIR="${COMPOSER_HOME:-$PROJECT_ROOT/.composer}"
+mkdir -p "$HOME_DIR" "$COMPOSER_HOME_DIR"
+
 COMPOSER_BIN=(composer)
 if ! command -v composer >/dev/null 2>&1; then
     echo "Composer introuvable. Téléchargement en cours..."
@@ -44,10 +50,6 @@ if ! command -v composer >/dev/null 2>&1; then
         rm -f composer-setup.php
         exit 1
     fi
-
-    HOME_DIR="${HOME:-$projectRoot}"
-    COMPOSER_HOME_DIR="${COMPOSER_HOME:-$projectRoot/.composer}"
-    mkdir -p "$HOME_DIR" "$COMPOSER_HOME_DIR"
 
     HOME="$HOME_DIR" COMPOSER_HOME="$COMPOSER_HOME_DIR" "$PHP_BIN" composer-setup.php --quiet
     RESULT=$?

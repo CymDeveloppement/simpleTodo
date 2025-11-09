@@ -37,8 +37,10 @@ for arg in "$@"; do
     fi
 done
 
-# Aller à la racine du projet (emplacement du script)
-cd "$(dirname "$0")"
+# Aller à la racine du projet (dossier parent de update-bin)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 echo "=== SimpleTodo Update (tag ${TARGET_TAG}) ==="
 echo "Répertoire: $(pwd)"

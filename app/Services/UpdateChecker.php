@@ -13,8 +13,8 @@ class UpdateChecker
     {
         $basePath = base_path();
         Log::info('Base path: ' . $basePath);
-        $this->localVersionScript = $localScript ?? $basePath . '/getCurrentVersion';
-        $this->remoteVersionScript = $remoteScript ?? $basePath . '/getNewVersion';
+        $this->localVersionScript = $localScript ?? $basePath . '/update-bin/getCurrentVersion';
+        $this->remoteVersionScript = $remoteScript ?? $basePath . '/update-bin/getNewVersion';
         $this->defaultRemote = $remote ?? env('ADMIN_REPOSITORY', 'CymDeveloppement/simpleTodo');
     }
 

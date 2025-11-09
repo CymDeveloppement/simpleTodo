@@ -5,7 +5,7 @@ declare(strict_types=1);
 $projectRoot = dirname(__DIR__);
 $envPath = $projectRoot . '/.env';
 $envExamplePath = $projectRoot . '/env.example';
-$scriptPath = $projectRoot . '/installSimpleTodo';
+$scriptPath = $projectRoot . '/update-bin/installSimpleTodo';
 
 if (isset($_GET['stream'])) {
     runInstallScript($projectRoot, $scriptPath);

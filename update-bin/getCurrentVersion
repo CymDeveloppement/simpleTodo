@@ -2,8 +2,10 @@
 
 set -euo pipefail
 
-# Aller à la racine du projet (emplacement du script)
-cd "$(dirname "$0")"
+# Aller à la racine du projet (dossier parent de update-bin)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 if ! command -v git >/dev/null 2>&1; then
     echo "git n'est pas disponible sur cette machine." >&2
