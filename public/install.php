@@ -39,7 +39,15 @@ $env = array_merge(
     array_filter($_SERVER, fn($value) => is_scalar($value))
 );
 $env['PATH'] = getenv('PATH') ?: ($env['PATH'] ?? '');
-$env['PHP_CLI'] = PHP_BINARY;
+
+$phpCli = PHP_BINARY;
+if (!is_file($phpCli) || !is_executable($phpCli) || str_contains(strtolower($phpCli), 'php-fpm')) {
+    $bindirCli = PHP_BINDIR . DIRECTORY_SEPARATOR . 'php';
+    if (is_file($bindirCli) && is_executable($bindirCli)) {
+        $phpCli = $bindirCli;
+    }
+}
+$env['PHP_CLI'] = $phpCli;
 
 $process = proc_open(['bash', $scriptPath], $descriptorSpec, $pipes, $projectRoot, $env);
 

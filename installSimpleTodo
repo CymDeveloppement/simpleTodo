@@ -9,6 +9,13 @@ echo "=== Installation SimpleTodo ==="
 echo "Répertoire: $(pwd)"
 
 PHP_BIN="${PHP_CLI:-}"
+if [[ -n "$PHP_BIN" ]]; then
+    if [[ ! -x "$PHP_BIN" ]]; then
+        echo "PHP_CLI fourni mais inexécutable (${PHP_BIN}). Recherche dans le PATH..."
+        PHP_BIN=""
+    fi
+fi
+
 if [[ -z "$PHP_BIN" ]]; then
     if command -v php >/dev/null 2>&1; then
         PHP_BIN="$(command -v php)"
@@ -19,6 +26,8 @@ if [[ -z "$PHP_BIN" ]]; then
     echo "Erreur : php est requis mais introuvable." >&2
     exit 1
 fi
+
+echo "Utilisation de PHP CLI : ${PHP_BIN}"
 
 COMPOSER_BIN=(composer)
 if ! command -v composer >/dev/null 2>&1; then
