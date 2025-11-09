@@ -23,10 +23,6 @@
                 <div class="d-flex align-items-center mb-3">
                     <h4 class="mb-0"><i class="bi bi-check2-square"></i> <span id="listTitle">SimpleTodo</span></h4>
                     <div class="d-flex align-items-center gap-2 ms-auto">
-                        <span class="text-white me-2 user-email" style="display: none;">
-                            <i class="bi bi-person-circle"></i>
-                            <span class="user-email-text"></span>
-                        </span>
                         <button class="btn btn-sm btn-light creator-only" onclick="editTitle()">
                             <i class="bi bi-pencil"></i> Modifier
                         </button>
