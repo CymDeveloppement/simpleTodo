@@ -438,7 +438,22 @@ function runInstallScript(string $projectRoot, string $scriptPath): void
 
     $process = proc_open(['bash', $scriptPath], $descriptorSpec, $pipes, $projectRoot, $env);
 
+    $logDir = $projectRoot . '/storage/logs/update';
+    if (!is_dir($logDir)) {
+        @mkdir($logDir, 0775, true);
+    }
+    $timestamp = date('Ymd_His');
+    $logFile = $logDir . '/install-' . $timestamp . '.log';
+    $logHandle = @fopen($logFile, 'ab');
+    if ($logHandle) {
+        fwrite($logHandle, "=== SimpleTodo Install ===\nDate: " . date('c') . "\nScript: {$scriptPath}\n--- OUTPUT ---\n");
+    }
+
     if (!is_resource($process)) {
+        if ($logHandle) {
+            fwrite($logHandle, "Impossible de démarrer le script.\n");
+            fclose($logHandle);
+        }
         http_response_code(500);
         echo "Impossible de démarrer le script d'installation.\n";
         return;
@@ -473,11 +488,20 @@ function runInstallScript(string $projectRoot, string $scriptPath): void
 
             if ($chunk !== false && $chunk !== '') {
                 echo $chunk;
+                if ($logHandle) {
+                    fwrite($logHandle, $chunk);
+                }
                 flush();
             }
         }
     }
 
     $exitCode = proc_close($process);
-    echo "\n---\nInstallation terminée avec le code de sortie {$exitCode}.\n";
+    $summary = "\n---\nInstallation terminée avec le code de sortie {$exitCode}.\n";
+    echo $summary;
+    if ($logHandle) {
+        fwrite($logHandle, $summary);
+        fclose($logHandle);
+        echo "Journal enregistré dans : {$logFile}\n";
+    }
 }

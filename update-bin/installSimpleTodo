@@ -7,6 +7,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+if [[ -d storage/logs/update ]]; then
+    TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+    LOG_FILE="storage/logs/update/install-${TIMESTAMP}.log"
+    if command -v tee >/dev/null 2>&1; then
+        exec > >(tee -a "$LOG_FILE") 2>&1
+    else
+        exec >>"$LOG_FILE" 2>&1
+    fi
+    echo "Fichier de log : $LOG_FILE"
+fi
+
 echo "=== Installation SimpleTodo ==="
 echo "Répertoire: $(pwd)"
 

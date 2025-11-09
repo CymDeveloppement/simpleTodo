@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class UpdateController extends Controller
 {
@@ -71,11 +72,59 @@ class UpdateController extends Controller
 
         $exitCode = proc_close($process);
 
+        $checker = app(\App\Services\UpdateChecker::class);
+        $localVersion = $checker->getLocalVersion() ?? 'unknown';
+        $sanitizedVersion = preg_replace('/[^A-Za-z0-9._-]/', '_', $localVersion);
+        $timestamp = date('Ymd_His');
+        $logDir = storage_path('logs/update');
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0775, true);
+        }
+        $logFile = $logDir . '/' . ($sanitizedVersion ?: 'unknown') . '-' . $timestamp . '.log';
+
+        $context = [
+            'script' => $scriptPath,
+            'force' => $request->boolean('force'),
+            'admin_email' => $adminEmail,
+            'session_email' => $sessionEmail,
+            'request_email' => $requestEmail,
+            'exit_code' => $exitCode,
+            'stdout' => trim($stdout),
+            'stderr' => trim($stderr),
+            'version' => $localVersion,
+            'log_file' => $logFile,
+        ];
+
+        $logHeader = "=== SimpleTodo Update ===\n"
+            . 'Date: ' . date('c') . "\n"
+            . "Version: {$localVersion}\n"
+            . "Script: {$scriptPath}\n"
+            . 'Force: ' . ($request->boolean('force') ? 'true' : 'false') . "\n"
+            . "Admin email: {$adminEmail}\n"
+            . "Session email: {$sessionEmail}\n"
+            . "Request email: {$requestEmail}\n"
+            . "Exit code: {$exitCode}\n"
+            . "--- STDOUT ---\n"
+            . ($stdout ?? '') . "\n"
+            . "--- STDERR ---\n"
+            . ($stderr ?? '') . "\n";
+
+        if (is_dir($logDir)) {
+            @file_put_contents($logFile, $logHeader, LOCK_EX);
+        }
+
+        if ($exitCode === 0) {
+            Log::channel('update')->info('Exécution réussie de update.sh', $context);
+        } else {
+            Log::channel('update')->error('Échec de l\'exécution de update.sh', $context);
+        }
+
         return response()->json([
             'success' => $exitCode === 0,
             'code' => $exitCode,
             'stdout' => $stdout,
             'stderr' => $stderr,
+            'log_file' => is_dir($logDir) ? $logFile : null,
         ], $exitCode === 0 ? 200 : 500);
     }
 
