@@ -42,6 +42,19 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+PHP_BIN="${PHP_CLI:-}"
+if [[ -n "$PHP_BIN" ]]; then
+    if [[ ! -x "$PHP_BIN" ]]; then
+        PHP_BIN=""
+    fi
+fi
+
+if [[ -z "$PHP_BIN" ]]; then
+    if command -v php >/dev/null 2>&1; then
+        PHP_BIN="$(command -v php)"
+    fi
+fi
+
 echo "=== SimpleTodo Update (tag ${TARGET_TAG}) ==="
 echo "Répertoire: $(pwd)"
 
@@ -97,8 +110,8 @@ echo "Statut git:"
 git status --short --branch
 
 echo "Exécution des migrations artisan..."
-if command -v php >/dev/null 2>&1; then
-    php artisan migrate --force || {
+if [[ -n "$PHP_BIN" ]]; then
+    "$PHP_BIN" artisan migrate --force || {
         echo "Les migrations ont échoué." >&2
         exit 4
     }

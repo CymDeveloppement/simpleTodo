@@ -22,6 +22,19 @@ export GIT_TERMINAL_PROMPT=0
 # Silence whitespace warnings during patch application
 git config apply.whitespace nowarn || true
 
+PHP_BIN="${PHP_CLI:-}"
+if [[ -n "$PHP_BIN" ]]; then
+  if [[ ! -x "$PHP_BIN" ]]; then
+    PHP_BIN=""
+  fi
+fi
+
+if [[ -z "$PHP_BIN" ]]; then
+  if command -v php >/dev/null 2>&1; then
+    PHP_BIN="$(command -v php)"
+  fi
+fi
+
 ensure_tracking_branch() {
   local current_branch upstream
   current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
@@ -137,8 +150,8 @@ fi
 
 # 3) Run database migrations (non-interactive)
 echo "Running database migrations..."
-if command -v php >/dev/null 2>&1; then
-  php artisan migrate --force
+if [[ -n "$PHP_BIN" ]]; then
+  "$PHP_BIN" artisan migrate --force
 else
   echo "php command not found. Skipping migrations."
 fi

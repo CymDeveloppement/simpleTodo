@@ -56,7 +56,12 @@ class UpdateController extends Controller
         if ($request->boolean('force')) {
             $cmd .= ' --force';
         }
-        $process = proc_open($cmd, $descriptorSpec, $pipes, $projectRoot);
+
+        $environment = array_filter(array_merge($_SERVER, $_ENV), static fn ($value) => is_scalar($value));
+        $environment['PATH'] = getenv('PATH') ?: ($environment['PATH'] ?? '');
+        $environment['PHP_CLI'] = PHP_BINARY;
+
+        $process = proc_open($cmd, $descriptorSpec, $pipes, $projectRoot, $environment);
 
         if (!\is_resource($process)) {
             return response()->json([
@@ -70,7 +75,11 @@ class UpdateController extends Controller
         fclose($pipes[1]);
         fclose($pipes[2]);
 
+        $status = proc_get_status($process);
         $exitCode = proc_close($process);
+        if ($exitCode === -1 && isset($status['exitcode']) && $status['exitcode'] !== -1) {
+            $exitCode = $status['exitcode'];
+        }
 
         $checker = app(\App\Services\UpdateChecker::class);
         $localVersion = $checker->getLocalVersion() ?? 'unknown';
