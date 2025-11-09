@@ -407,6 +407,7 @@ function runInstallScript(string $projectRoot, string $scriptPath): void
         2 => ['pipe', 'w'],
     ];
 
+
     $env = array_filter($_ENV, fn($value) => is_scalar($value));
     $serverEnv = array_filter($_SERVER, fn($value) => is_scalar($value));
     $env = array_merge($serverEnv, $env);
