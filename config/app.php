@@ -13,6 +13,7 @@ return [
     'faker_locale' => 'fr_FR',
     'key' => env('APP_KEY'),
     'cipher' => 'AES-256-CBC',
+    'version' => env('APP_VERSION', 'dev'),
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),

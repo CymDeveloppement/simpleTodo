@@ -205,6 +205,14 @@
         </small>
     </div>
 
+    <footer class="text-center text-muted py-3">
+        <small>
+            <a href="https://github.com/CymDeveloppement/simpleTodo" target="_blank" rel="noopener" class="text-decoration-none">
+                SimpleTodo {{ config('app.version', 'dev') }}
+            </a>
+        </small>
+    </footer>
+
     <!-- Modal de mise à jour (propriétaire uniquement) -->
     <div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
