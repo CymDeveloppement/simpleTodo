@@ -8,20 +8,27 @@ cd "$(dirname "$0")"
 echo "=== Installation SimpleTodo ==="
 echo "Répertoire: $(pwd)"
 
-if ! command -v php >/dev/null 2>&1; then
+PHP_BIN="${PHP_CLI:-}"
+if [[ -z "$PHP_BIN" ]]; then
+    if command -v php >/dev/null 2>&1; then
+        PHP_BIN="$(command -v php)"
+    fi
+fi
+
+if [[ -z "$PHP_BIN" ]]; then
     echo "Erreur : php est requis mais introuvable." >&2
     exit 1
 fi
 
-COMPOSER_BIN="composer"
+COMPOSER_BIN=(composer)
 if ! command -v composer >/dev/null 2>&1; then
     echo "Composer introuvable. Téléchargement en cours..."
 
     rm -f composer.phar composer-setup.php
 
-    EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-    ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
+    EXPECTED_CHECKSUM="$("$PHP_BIN" -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
+    "$PHP_BIN" -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    ACTUAL_CHECKSUM="$("$PHP_BIN" -r "echo hash_file('sha384', 'composer-setup.php');")"
 
     if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
         >&2 echo 'ERROR: Invalid installer checksum'
@@ -29,7 +36,7 @@ if ! command -v composer >/dev/null 2>&1; then
         exit 1
     fi
 
-    php composer-setup.php --quiet
+    "$PHP_BIN" composer-setup.php --quiet
     RESULT=$?
     rm -f composer-setup.php
 
@@ -38,10 +45,10 @@ if ! command -v composer >/dev/null 2>&1; then
         exit $RESULT
     fi
 
-    COMPOSER_BIN="php composer.phar"
+    COMPOSER_BIN=("$PHP_BIN" composer.phar)
     echo "Composer installé localement (composer.phar)."
 elif [ -f composer.phar ]; then
-    COMPOSER_BIN="php composer.phar"
+    COMPOSER_BIN=("$PHP_BIN" composer.phar)
 fi
 
 if command -v git >/dev/null 2>&1; then
@@ -70,7 +77,7 @@ else
 fi
 
 echo "1/2 Installation des dépendances backend (composer)..."
-$COMPOSER_BIN install --no-interaction --prefer-dist
+"${COMPOSER_BIN[@]}" install --no-interaction --prefer-dist
 
 if [[ ! -f .env && -f env.example ]]; then
     echo "Copie de env.example vers .env..."
@@ -81,11 +88,11 @@ echo "Préparation des répertoires de cache..."
 mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views
 
 echo "2/2 Migration de la base..."
-php artisan migrate --force
+"$PHP_BIN" artisan migrate --force
 
 if grep -q '^APP_KEY=$' .env 2>/dev/null; then
     echo "Génération de la clé applicative..."
-    php artisan key:generate --force
+    "$PHP_BIN" artisan key:generate --force
 fi
 
 echo "✅ Installation terminée."

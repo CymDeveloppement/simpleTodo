@@ -33,7 +33,15 @@ $descriptorSpec = [
     2 => ['pipe', 'w'],
 ];
 
-$process = proc_open(['bash', $scriptPath], $descriptorSpec, $pipes, $projectRoot);
+$env = array_merge(
+    [],
+    array_filter($_ENV, fn($value) => is_scalar($value)),
+    array_filter($_SERVER, fn($value) => is_scalar($value))
+);
+$env['PATH'] = getenv('PATH') ?: ($env['PATH'] ?? '');
+$env['PHP_CLI'] = PHP_BINARY;
+
+$process = proc_open(['bash', $scriptPath], $descriptorSpec, $pipes, $projectRoot, $env);
 
 if (!is_resource($process)) {
     http_response_code(500);
