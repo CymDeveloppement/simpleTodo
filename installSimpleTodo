@@ -45,7 +45,11 @@ if ! command -v composer >/dev/null 2>&1; then
         exit 1
     fi
 
-    "$PHP_BIN" composer-setup.php --quiet
+    HOME_DIR="${HOME:-$projectRoot}"
+    COMPOSER_HOME_DIR="${COMPOSER_HOME:-$projectRoot/.composer}"
+    mkdir -p "$HOME_DIR" "$COMPOSER_HOME_DIR"
+
+    HOME="$HOME_DIR" COMPOSER_HOME="$COMPOSER_HOME_DIR" "$PHP_BIN" composer-setup.php --quiet
     RESULT=$?
     rm -f composer-setup.php
 
@@ -86,7 +90,7 @@ else
 fi
 
 echo "1/2 Installation des dépendances backend (composer)..."
-"${COMPOSER_BIN[@]}" install --no-interaction --prefer-dist
+HOME="$HOME_DIR" COMPOSER_HOME="$COMPOSER_HOME_DIR" "${COMPOSER_BIN[@]}" install --no-interaction --prefer-dist
 
 if [[ ! -f .env && -f env.example ]]; then
     echo "Copie de env.example vers .env..."

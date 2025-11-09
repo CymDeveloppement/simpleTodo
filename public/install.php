@@ -49,6 +49,19 @@ if (!is_file($phpCli) || !is_executable($phpCli) || str_contains(strtolower($php
 }
 $env['PHP_CLI'] = $phpCli;
 
+$defaultHome = $projectRoot . '/.installer-home';
+if (!is_dir($defaultHome)) {
+    mkdir($defaultHome, 0775, true);
+}
+
+$defaultComposerHome = $projectRoot . '/.composer-installer';
+if (!is_dir($defaultComposerHome)) {
+    mkdir($defaultComposerHome, 0775, true);
+}
+
+$env['HOME'] = $env['HOME'] ?? $defaultHome;
+$env['COMPOSER_HOME'] = $env['COMPOSER_HOME'] ?? $defaultComposerHome;
+
 $process = proc_open(['bash', $scriptPath], $descriptorSpec, $pipes, $projectRoot, $env);
 
 if (!is_resource($process)) {
