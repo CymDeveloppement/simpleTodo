@@ -65,6 +65,7 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
         ],
 
+        
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,
