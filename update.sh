@@ -20,6 +20,33 @@ export GIT_TERMINAL_PROMPT=0
 # Silence whitespace warnings during patch application
 git config apply.whitespace nowarn || true
 
+ensure_tracking_branch() {
+  local current_branch upstream
+  current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+  if [[ -z "$current_branch" || "$current_branch" == "HEAD" ]]; then
+    return 0
+  fi
+
+  if git rev-parse --abbrev-ref --symbolic-full-name "@{u}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if git remote get-url origin >/dev/null 2>&1; then
+    if git ls-remote --exit-code --heads origin "$current_branch" >/dev/null 2>&1; then
+      echo "Setting upstream for ${current_branch} to origin/${current_branch}..."
+      git branch --set-upstream-to="origin/${current_branch}" "${current_branch}" || true
+      return 0
+    fi
+
+    if git ls-remote --exit-code --heads origin main >/dev/null 2>&1; then
+      echo "Setting upstream for ${current_branch} to origin/main..."
+      git branch --set-upstream-to="origin/main" "${current_branch}" || true
+      return 0
+    fi
+  fi
+}
+
 # 1) Git steps (only if in a git repository)
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   # Stash local changes if any (including untracked)
@@ -32,6 +59,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 
   # Pull latest changes
   echo "Pulling latest changes..."
+  ensure_tracking_branch
   if ! git pull --rebase; then
     echo "git pull --rebase failed. Checking for merge conflicts..."
     if git ls-files -u | grep -q ""; then
