@@ -52,7 +52,7 @@ while (!empty($openPipes)) {
     $write = null;
     $except = null;
 
-    if (stream_select($read, $write, $except, null, 200000) === false) {
+    if (stream_select($read, $write, $except, 0, 200000) === false) {
         break;
     }
 
