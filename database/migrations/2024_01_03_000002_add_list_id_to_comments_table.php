@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('comments', function (Blueprint $table) {
             if (!Schema::hasColumn('comments', 'list_id')) {
-                $table->string('list_id')->after('id');
+                $table->string('list_id')->nullable()->after('id');
             }
         });
     }
