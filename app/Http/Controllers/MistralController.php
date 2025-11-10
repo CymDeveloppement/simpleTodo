@@ -10,6 +10,31 @@ class MistralController extends Controller
 {
     public function generate(Request $request, Mistral $mistral): JsonResponse
     {
+        $adminEmail = strtolower(trim((string) env('ADMIN_EMAIL')));
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $sessionEmail = null;
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['simpleTodo_email'])) {
+            $sessionEmail = strtolower(trim((string) $_SESSION['simpleTodo_email']));
+        }
+
+        $requestEmail = strtolower(trim((string) ($request->input('email') ?? $request->header('X-User-Email') ?? '')));
+
+        $authorized = $adminEmail && ((
+            $sessionEmail && $sessionEmail === $adminEmail
+        ) || (
+            $requestEmail && $requestEmail === $adminEmail
+        ));
+
+        if (!$authorized) {
+            return response()->json([
+                'message' => 'Accès refusé',
+            ], 403);
+        }
+
         $data = $request->validate([
             'prompt' => 'required|string|max:2000',
             'max_items' => 'nullable|integer|min:1|max:100',
