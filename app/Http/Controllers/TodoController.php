@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Todo;
 use App\Models\Subscriber;
 use App\Models\EmailQueue;
+use App\Models\Category;
 use App\Services\MailService;
 use Illuminate\Http\Request;
 
@@ -31,7 +32,24 @@ class TodoController extends Controller
         $this->validate($request, [
             'text' => 'required|string|max:255',
             'pseudo' => 'required|string|max:50',
+            'category_name' => 'nullable|string|max:100',
         ]);
+
+        $categoryId = $request->input('category_id');
+        $categoryName = trim((string) $request->input('category_name'));
+
+        if (!$categoryId && $categoryName !== '') {
+            $category = Category::firstOrCreate(
+                [
+                    'list_id' => $listId,
+                    'name' => $categoryName,
+                ],
+                [
+                    'color' => sprintf('#%06X', random_int(0, 0xFFFFFF)),
+                ]
+            );
+            $categoryId = $category->id;
+        }
 
         // Vérifier si l'option auto_assign_to_creator est activée
         $list = \App\Models\TodoList::find($listId);
@@ -50,7 +68,7 @@ class TodoController extends Controller
 
         $todo = Todo::create([
             'list_id' => $listId,
-            'category_id' => $request->input('category_id'),
+            'category_id' => $categoryId,
             'text' => $request->input('text'),
             'pseudo' => $request->input('pseudo'),
             'completed' => false,

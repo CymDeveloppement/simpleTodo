@@ -190,9 +190,12 @@
                 </div>
                 
                 <!-- Bouton de partage en bas -->
-                <div class="text-center py-3 border-top">
+                <div class="text-center py-3 border-top d-flex flex-wrap justify-content-center gap-2">
                     <button class="btn btn-outline-primary" onclick="shareListUrl()">
                         <i class="bi bi-share"></i> Partager cette liste
+                    </button>
+                    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#mistralModal">
+                        <i class="bi bi-stars"></i> Générer avec Mistral
                     </button>
                 </div>
             </div>
@@ -233,6 +236,50 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
                     <button type="button" class="btn btn-primary" onclick="runServerUpdate()"><i class="bi bi-play-circle"></i> Lancer la mise à jour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mistral -->
+    <div class="modal fade" id="mistralModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-stars"></i> Génération de tâches via Mistral AI</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Décrivez ce que vous souhaitez accomplir. SimpleTodo générera une liste de tâches à partir de votre requête.</p>
+                    <div class="mb-3">
+                        <label for="mistralPrompt" class="form-label">Prompt</label>
+                        <textarea id="mistralPrompt" class="form-control" rows="4" placeholder="Ex. : Préparer un déménagement familial à Paris"></textarea>
+                    </div>
+                    <div class="d-flex align-items-center mb-3">
+                        <label for="mistralMaxItems" class="form-label me-2 mb-0">Nombre max. d’items</label>
+                        <input type="number" id="mistralMaxItems" class="form-control" style="width: 120px;" min="1" max="100" value="10">
+                    </div>
+                    <div class="d-flex align-items-center mb-3">
+                        <label for="mistralDeadline" class="form-label me-2 mb-0">Date butoir</label>
+                        <input type="date" id="mistralDeadline" class="form-control" style="max-width: 180px;">
+                    </div>
+                    <div id="mistralAlert" class="alert alert-danger d-none" role="alert"></div>
+                    <div id="mistralStatus" class="text-muted small mb-3 d-none"></div>
+                    <div id="mistralResultWrapper" class="d-none">
+                        <h6 class="fw-bold">Liste générée :</h6>
+                        <div id="mistralResultTitle" class="fs-5 mb-2"></div>
+                        <p id="mistralResultSummary" class="text-muted"></p>
+                        <ul id="mistralResultItems" class="list-group mb-3"></ul>
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-success" id="mistralImportBtn" disabled><i class="bi bi-plus-circle"></i> Importer dans la liste</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-primary" id="mistralGenerateBtn">
+                        <i class="bi bi-magic"></i> Générer
+                    </button>
                 </div>
             </div>
         </div>

@@ -30,5 +30,10 @@ return [
         'secret' => env('SPARKPOST_SECRET'),
     ],
 
+    'mistral' => [
+        'api_key' => env('MISTRAL_API_KEY'),
+        'model' => env('MISTRAL_MODEL', 'mistral-small-latest'),
+    ],
+
 ];
 

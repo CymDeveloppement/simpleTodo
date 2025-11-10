@@ -57,3 +57,5 @@ Route::get('/email-queue/status', [App\Http\Controllers\EmailQueueController::cl
 // Maintenance / Update
 Route::post('/update', [App\Http\Controllers\UpdateController::class, 'run']);
 
+Route::post('/mistral/generate', [App\Http\Controllers\MistralController::class, 'generate']);
+

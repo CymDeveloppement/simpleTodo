@@ -31,6 +31,7 @@ import {
     deleteTodo,
     clearCompleted,
     assignTodo,
+    initMistralModal,
 } from './modules/todos.js';
 
 Object.assign(window, {
@@ -249,6 +250,7 @@ async function saveAutoAssignOption() {
 
 // Charger le pseudo et le titre au démarrage
 document.addEventListener('DOMContentLoaded', function() {
+    initMistralModal();
     const storedPseudo = localStorage.getItem('simpleTodo_pseudo');
     
     // Récupérer le token depuis l'URL (query string ou chemin)
