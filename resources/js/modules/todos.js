@@ -273,10 +273,15 @@ function displayTodos(todos) {
                 grouped.set(categoryId, {
                     name: todo.category.name,
                     color: todo.category.color,
+                    nextDate: todo.category.next_date || null,
                     todos: [],
                 });
             }
-            grouped.get(categoryId).todos.push(todo);
+            const group = grouped.get(categoryId);
+            if (todo.category.next_date && (!group.nextDate || todo.category.next_date < group.nextDate)) {
+                group.nextDate = todo.category.next_date;
+            }
+            group.todos.push(todo);
         } else {
             uncategorized.push(todo);
         }
@@ -296,6 +301,20 @@ function displayTodos(todos) {
         html += '<div class="accordion" id="todoAccordion">';
 
         const categoriesArray = Array.from(grouped.entries()).sort((a, b) => {
+            const nextA = a[1].nextDate || null;
+            const nextB = b[1].nextDate || null;
+
+            if (nextA && nextB) {
+                const diff = new Date(nextA) - new Date(nextB);
+                if (diff !== 0) {
+                    return diff;
+                }
+            } else if (nextA && !nextB) {
+                return -1;
+            } else if (!nextA && nextB) {
+                return 1;
+            }
+
             const catA = a[1].name.toLowerCase();
             const catB = b[1].name.toLowerCase();
             return catA.localeCompare(catB, 'fr');
@@ -307,6 +326,7 @@ function displayTodos(todos) {
             const isOpen = index === 0 && !uncategorized.length;
             const badgeColor = data.color || '#6c757d';
             const tasksHtml = data.todos.map(todo => renderTodo(todo)).join('');
+            const nextDateBadge = getNextDateBadge(data.nextDate) || '';
 
             html += `
                 <div class="accordion-item">
@@ -318,6 +338,7 @@ function displayTodos(todos) {
                                 ${escapeHtml(data.name)}
                             </span>
                             <span class="ms-1 text-muted">${data.todos.length} tâche${data.todos.length > 1 ? 's' : ''}</span>
+                            ${nextDateBadge}
                         </button>
                     </h2>
                     <div id="${collapseId}" class="accordion-collapse collapse ${isOpen ? 'show' : ''}"
@@ -356,9 +377,6 @@ function renderTodo(todo) {
     const assignedBadge = todo.assigned_to
         ? `<span class="badge bg-info text-dark pseudo-badge ms-2"><i class="bi bi-person-check"></i> ${escapeHtml(todo.assigned_to)}</span>`
         : '';
-    const categoryBadge = todo.category
-        ? `<span class="badge" style="background-color:${todo.category.color};">${escapeHtml(todo.category.name)}</span>`
-        : '';
 
     const commentsButtonClass = commentCount > 0
         ? 'btn btn-sm btn-outline-primary'
@@ -375,7 +393,6 @@ function renderTodo(todo) {
                     <div>
                         <span class="todo-text ${todo.completed ? 'completed' : ''}">${escapeHtml(todo.text)}</span>
                         ${todo.completed ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle"></i> Terminé</span>' : ''}
-                        ${categoryBadge}
                         ${creatorBadge}
                         ${assignedBadge}
                     </div>
@@ -435,6 +452,33 @@ function formatDate(dateString) {
         month: 'long',
         day: 'numeric',
     });
+}
+
+function getNextDateBadge(dateString) {
+    if (!dateString) {
+        return null;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dateString);
+    due.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((due - today) / 86400000);
+
+    let classes = 'badge ms-auto text-uppercase';
+    let icon = 'bi-calendar-event';
+
+    if (diffDays <= 0) {
+        classes += ' bg-danger';
+        icon = 'bi-exclamation-octagon';
+    } else if (diffDays <= 7) {
+        classes += ' bg-warning text-dark';
+        icon = 'bi-exclamation-triangle';
+    } else {
+        classes += ' bg-primary';
+    }
+
+    return `<span class="${classes}"><i class="bi ${icon} me-1"></i>${escapeHtml(formatDate(dateString))}</span>`;
 }
 
 function updateStats(todos) {
