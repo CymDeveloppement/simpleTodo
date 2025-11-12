@@ -82,6 +82,14 @@ function initMistralModal() {
         const prompt = promptField.value.trim();
         const maxItems = parseInt(maxItemsField.value, 10);
         const deadline = deadlineField?.value ? deadlineField.value : null;
+        const rawEmail = (typeof window !== 'undefined') ? (window.userEmail || getCurrentUserEmail()) : '';
+        const currentEmail = rawEmail ? rawEmail.trim() : '';
+
+        if (!window.isListCreator) {
+            alertBox.textContent = 'Seul le propriétaire de la liste peut utiliser la génération Mistral.';
+            alertBox.classList.remove('d-none');
+            return;
+        }
 
         if (prompt === '') {
             alertBox.textContent = 'Veuillez décrire ce que vous souhaitez générer.';
@@ -104,12 +112,14 @@ function initMistralModal() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-User-Email': currentEmail || '',
                 },
                 body: JSON.stringify({
                     prompt,
                     max_items: Number.isNaN(maxItems) ? undefined : maxItems,
                     deadline,
                     list_id: listId,
+                    email: currentEmail || undefined,
                 }),
             });
 

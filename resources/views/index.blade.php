@@ -194,9 +194,11 @@
                     <button class="btn btn-outline-primary" onclick="shareListUrl()">
                         <i class="bi bi-share"></i> Partager cette liste
                     </button>
-                    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#mistralModal">
+                    @if(!empty(env('MISTRAL_API_KEY')))
+                    <button class="btn btn-outline-secondary creator-only d-none" data-bs-toggle="modal" data-bs-target="#mistralModal">
                         <i class="bi bi-stars"></i> Générer avec Mistral
                     </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -242,6 +244,7 @@
     </div>
 
     <!-- Modal Mistral -->
+    @if(!empty(env('MISTRAL_API_KEY')))
     <div class="modal fade" id="mistralModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
@@ -284,6 +287,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Modal d'aide -->
     <div class="modal" id="helpModal" tabindex="-1">
